@@ -3,6 +3,13 @@ export type HealthResponse = {
   message: string;
 };
 
+import type {
+  AuthMeResponse,
+  AuthSuccessResponse,
+  LoginInput,
+  RegisterInput,
+} from "../types/auth";
+
 function getApiBaseUrl(): string {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -13,16 +20,27 @@ function getApiBaseUrl(): string {
   return baseUrl.replace(/\/$/, "");
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+type RequestMethod = "GET" | "POST";
+
+type RequestOptions = {
+  method?: RequestMethod;
+  body?: unknown;
+  token?: string;
+};
+
+async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const baseUrl = getApiBaseUrl();
+  const { method = "GET", body, token } = options;
   let response: Response;
 
   try {
     response = await fetch(`${baseUrl}${path}`, {
-      method: "GET",
+      method,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      ...(body ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
     });
   } catch {
@@ -55,6 +73,26 @@ export async function apiGet<T>(path: string): Promise<T> {
   return parsedBody as T;
 }
 
+export async function apiGet<T>(path: string, token?: string): Promise<T> {
+  return apiRequest<T>(path, { method: "GET", token });
+}
+
+export async function apiPost<T>(path: string, body: unknown, token?: string): Promise<T> {
+  return apiRequest<T>(path, { method: "POST", body, token });
+}
+
 export async function getHealth(): Promise<HealthResponse> {
   return apiGet<HealthResponse>("/api/health");
+}
+
+export async function registerRequest(input: RegisterInput): Promise<AuthSuccessResponse> {
+  return apiPost<AuthSuccessResponse>("/api/auth/register", input);
+}
+
+export async function loginRequest(input: LoginInput): Promise<AuthSuccessResponse> {
+  return apiPost<AuthSuccessResponse>("/api/auth/login", input);
+}
+
+export async function getMe(token: string): Promise<AuthMeResponse> {
+  return apiGet<AuthMeResponse>("/api/auth/me", token);
 }

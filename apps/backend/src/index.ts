@@ -1,9 +1,7 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 
 import app from "./app";
 import { getEnv } from "./config/env";
-
-dotenv.config();
 
 const { PORT } = getEnv();
 const serverUrl = `http://localhost:${PORT}`;

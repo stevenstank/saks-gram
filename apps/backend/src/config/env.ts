@@ -1,6 +1,8 @@
 type AppEnv = {
   PORT: number;
   DATABASE_URL: string;
+  JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
 };
 
 function getRequiredEnv(name: string): string {
@@ -28,5 +30,7 @@ export function getEnv(): AppEnv {
   return {
     PORT: getPort(),
     DATABASE_URL: getRequiredEnv("DATABASE_URL"),
+    JWT_SECRET: getRequiredEnv("JWT_SECRET"),
+    JWT_EXPIRES_IN: getRequiredEnv("JWT_EXPIRES_IN"),
   };
 }

@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
 
+import { AuthProvider } from "../context/auth-context";
+
+import "./globals.css";
+
 type RootLayoutProps = {
   children: ReactNode;
 };
@@ -7,7 +11,9 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
