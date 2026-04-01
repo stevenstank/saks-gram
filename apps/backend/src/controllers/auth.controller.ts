@@ -11,6 +11,8 @@ type AuthUserRecord = {
   username: string;
   email: string;
   password: string;
+  bio: string | null;
+  avatar: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -56,6 +58,8 @@ export async function register(
         id: true,
         username: true,
         email: true,
+        bio: true,
+        avatar: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -119,6 +123,8 @@ export async function login(
           id: user.id,
           username: user.username,
           email: user.email,
+          bio: user.bio ?? undefined,
+          avatar: user.avatar ?? undefined,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
@@ -149,6 +155,8 @@ export async function me(
         id: true,
         username: true,
         email: true,
+        bio: true,
+        avatar: true,
         createdAt: true,
         updatedAt: true,
       },

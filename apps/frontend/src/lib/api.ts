@@ -1,14 +1,14 @@
-export type HealthResponse = {
-  success: boolean;
-  message: string;
-};
-
 import type {
   AuthMeResponse,
   AuthSuccessResponse,
   LoginInput,
   RegisterInput,
 } from "../types/auth";
+
+export type HealthResponse = {
+  success: boolean;
+  message: string;
+};
 
 function getApiBaseUrl(): string {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;

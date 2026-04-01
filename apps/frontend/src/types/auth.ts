@@ -2,6 +2,8 @@ export type AuthUser = {
   id: string;
   username: string;
   email: string;
+  bio?: string;
+  avatar?: string;
   createdAt: string;
   updatedAt: string;
 };
