@@ -1,4 +1,5 @@
 import { type NextFunction, type Request, type Response } from "express";
+import { Prisma } from "@prisma/client";
 
 import { AppError } from "../utils/app-error";
 
@@ -13,6 +14,44 @@ export function globalErrorHandler(
       success: false,
       message: err.message,
       statusCode: err.statusCode,
+    });
+    return;
+  }
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === "P2002") {
+      res.status(409).json({
+        success: false,
+        message: "Duplicate record",
+        statusCode: 409,
+      });
+      return;
+    }
+
+    if (err.code === "P2003") {
+      res.status(400).json({
+        success: false,
+        message: "Invalid relation reference",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    if (err.code === "P2025") {
+      res.status(404).json({
+        success: false,
+        message: "Resource not found",
+        statusCode: 404,
+      });
+      return;
+    }
+  }
+
+  if (err instanceof Prisma.PrismaClientValidationError) {
+    res.status(400).json({
+      success: false,
+      message: "Invalid database query input",
+      statusCode: 400,
     });
     return;
   }

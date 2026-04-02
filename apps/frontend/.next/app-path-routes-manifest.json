@@ -3,6 +3,8 @@
   "/_global-error/page": "/_global-error",
   "/login/page": "/login",
   "/page": "/",
+  "/profile/[id]/followers/page": "/profile/[id]/followers",
+  "/profile/[id]/following/page": "/profile/[id]/following",
   "/profile/[id]/page": "/profile/[id]",
   "/profile/edit/page": "/profile/edit",
   "/profile/page": "/profile",

@@ -29,6 +29,22 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/profile/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/profile/[id]/followers",
+      "regex": "^/profile/([^/]+?)/followers(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/profile/(?<nxtPid>[^/]+?)/followers(?:/)?$"
+    },
+    {
+      "page": "/profile/[id]/following",
+      "regex": "^/profile/([^/]+?)/following(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/profile/(?<nxtPid>[^/]+?)/following(?:/)?$"
     }
   ],
   "staticRoutes": [

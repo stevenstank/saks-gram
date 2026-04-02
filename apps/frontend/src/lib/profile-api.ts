@@ -8,6 +8,12 @@ type ApiSuccess<T> = {
 
 type ProfileUser = Pick<AuthUser, "id" | "username" | "email" | "bio" | "avatar">;
 
+export type BasicFollowUser = {
+  id: string;
+  username: string;
+  avatar?: string;
+};
+
 type UpdateProfileInput = {
   bio?: string | null;
   avatar?: string | null;
@@ -150,4 +156,93 @@ export async function uploadAvatar(file: File, token?: string): Promise<string> 
   }
 
   return (body as ApiSuccess<{ imageUrl: string }>).data.imageUrl;
+}
+
+export async function getFollowStatus(userId: string, token?: string): Promise<boolean> {
+  const response = await fetch(`${getApiBaseUrl()}/api/follow/status/${userId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(token),
+    },
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+
+  return (body as ApiSuccess<{ isFollowing: boolean }>).data.isFollowing;
+}
+
+export async function followUser(userId: string, token?: string): Promise<void> {
+  const response = await fetch(`${getApiBaseUrl()}/api/follow/${userId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(token),
+    },
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+}
+
+export async function unfollowUser(userId: string, token?: string): Promise<void> {
+  const response = await fetch(`${getApiBaseUrl()}/api/follow/${userId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(token),
+    },
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+}
+
+export async function getFollowers(userId: string): Promise<BasicFollowUser[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/users/${userId}/followers`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+
+  return (body as ApiSuccess<{ followers: BasicFollowUser[] }>).data.followers;
+}
+
+export async function getFollowing(userId: string): Promise<BasicFollowUser[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/users/${userId}/following`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+
+  return (body as ApiSuccess<{ following: BasicFollowUser[] }>).data.following;
 }

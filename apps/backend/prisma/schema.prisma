@@ -21,7 +21,24 @@ model User {
   avatar    String?  @db.VarChar(2048)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
 
   @@index([createdAt], map: "idx_users_created_at")
   @@map("users")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   @db.Uuid
+  followingId String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId], map: "uq_follows_follower_following")
+  @@index([followerId], map: "idx_follows_follower_id")
+  @@index([followingId], map: "idx_follows_following_id")
+  @@map("follows")
 }

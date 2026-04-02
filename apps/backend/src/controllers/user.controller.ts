@@ -16,9 +16,17 @@ type ProfileUserRecord = {
 const db = prisma as unknown as {
   user: {
     findUnique(args: unknown): Promise<ProfileUserRecord | null>;
+    findFirst(args: unknown): Promise<ProfileUserRecord | null>;
     update(args: unknown): Promise<ProfileUserRecord>;
   };
 };
+
+const UUID_V4_OR_V1_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_V4_OR_V1_REGEX.test(value);
+}
 
 function mapProfile(user: {
   id: string;
@@ -38,22 +46,33 @@ function mapProfile(user: {
 
 export async function getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const idParam = req.params.id;
+    const identifier = req.params.id;
 
-    if (typeof idParam !== "string" || idParam.trim() === "") {
-      throw new AppError("Invalid user id", 400);
+    if (typeof identifier !== "string" || identifier.trim() === "") {
+      throw new AppError("Invalid user identifier", 400);
     }
 
-    const user = await db.user.findUnique({
-      where: { id: idParam },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        bio: true,
-        avatar: true,
-      },
-    });
+    const user = isUuid(identifier)
+      ? await db.user.findUnique({
+          where: { id: identifier },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            bio: true,
+            avatar: true,
+          },
+        })
+      : await db.user.findFirst({
+          where: { username: identifier },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            bio: true,
+            avatar: true,
+          },
+        });
 
     if (!user) {
       throw new AppError("User not found", 404);

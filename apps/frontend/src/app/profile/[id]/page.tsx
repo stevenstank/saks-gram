@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 
-import { getProfile } from "../../../lib/profile-api";
+import { FollowButton } from "../../../components/follow-button";
+import { getFollowers, getFollowing, getProfile } from "../../../lib/profile-api";
 
 type ProfileUser = {
   id: string;
@@ -15,14 +18,17 @@ type ProfileUser = {
 
 export default function PublicProfilePage() {
   const params = useParams<{ id: string }>();
-  const userId = useMemo(() => params?.id ?? "", [params]);
+  const username = useMemo(() => params?.id ?? "", [params]);
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { data: followers = [] } = useSWR(username ? `followers:${username}` : null, () => getFollowers(username));
+  const { data: following = [] } = useSWR(username ? `following:${username}` : null, () => getFollowing(username));
+
   useEffect(() => {
-    if (!userId) {
-      setError("Invalid profile id");
+    if (!username) {
+      setError("Invalid profile username");
       setIsLoading(false);
       return;
     }
@@ -30,7 +36,7 @@ export default function PublicProfilePage() {
     setIsLoading(true);
     setError(null);
 
-    getProfile(userId)
+    getProfile(username)
       .then((data) => {
         setUser(data);
       })
@@ -41,7 +47,7 @@ export default function PublicProfilePage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [userId]);
+  }, [username]);
 
   if (isLoading) {
     return (
@@ -83,8 +89,18 @@ export default function PublicProfilePage() {
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">{user.username}</h1>
             <p className="text-sm text-slate-500">{user.email}</p>
+            <div className="mt-2 flex gap-4 text-sm text-slate-700">
+              <Link href={`/profile/${user.username}/followers`} className="hover:underline">
+                <span className="font-semibold">{followers.length}</span> Followers
+              </Link>
+              <Link href={`/profile/${user.username}/following`} className="hover:underline">
+                <span className="font-semibold">{following.length}</span> Following
+              </Link>
+            </div>
           </div>
         </div>
+
+        <FollowButton targetUserId={user.id} targetUsername={user.username} />
 
         <div className="mt-6 rounded-xl bg-slate-50 p-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Bio</h2>
