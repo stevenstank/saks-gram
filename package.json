@@ -2,6 +2,8 @@
   "name": "saks-gram",
   "private": true,
   "scripts": {
+    "build": "pnpm --filter backend build",
+    "start": "pnpm --filter backend start",
     "dev": "pnpm -r --parallel --filter './apps/*' dev",
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev"
