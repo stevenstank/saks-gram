@@ -105,15 +105,15 @@ export function CommentList({ postId, refreshKey = 0 }: CommentListProps) {
   }, [postId, refreshKey]);
 
   if (isLoading) {
-    return <p className="text-sm text-slate-600">Loading comments...</p>;
+    return <p className="text-sm text-gray-400">Loading comments...</p>;
   }
 
   if (error) {
-    return <p className="text-sm text-rose-700">{error}</p>;
+    return <p className="text-sm text-red-300">{error}</p>;
   }
 
   if (comments.length === 0) {
-    return <p className="text-sm text-slate-600">No comments yet.</p>;
+    return <p className="text-sm text-gray-400">No comments yet.</p>;
   }
 
   return (

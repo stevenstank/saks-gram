@@ -3,18 +3,19 @@
 import Link from "next/link";
 
 import { useAuth } from "../hooks/use-auth";
+import { Button } from "./ui/button";
 
 export function AuthStatus() {
   const { user, isAuthenticated, isBootstrapping, logout } = useAuth();
 
   if (isBootstrapping) {
-    return <p className="muted">Checking session...</p>;
+    return <p className="text-gray-400">Checking session...</p>;
   }
 
   if (!isAuthenticated || !user) {
     return (
       <div className="stack-sm">
-        <p className="muted">You are not logged in.</p>
+        <p className="text-gray-400">You are not logged in.</p>
         <div className="row">
           <Link href="/login" className="button secondary">
             Login
@@ -29,10 +30,16 @@ export function AuthStatus() {
 
   return (
     <div className="stack-sm">
-      <p>Signed in as <strong>{user.username}</strong> ({user.email})</p>
-      <button type="button" className="button danger" onClick={logout}>
+      <p className="text-gray-300">
+        Signed in as{" "}
+        <Link href={`/profile/${encodeURIComponent(user.username)}`} className="font-semibold text-white hover:underline">
+          {user.username}
+        </Link>{" "}
+        ({user.email})
+      </p>
+      <Button type="button" variant="danger" onClick={logout}>
         Logout
-      </button>
+      </Button>
     </div>
   );
 }

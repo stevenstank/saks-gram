@@ -1,6 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+
+import { Avatar } from "../../src/components/ui/avatar";
+import { Button } from "../../src/components/ui/button";
+import { Card } from "../../src/components/ui/card";
+import { InputField } from "../../src/components/ui/input-field";
+import { useToast } from "../../src/hooks/use-toast";
 
 type FeedPost = {
   id: string;
@@ -46,10 +53,12 @@ type CreateCommentResponse = {
 };
 
 export function PostCard({ post }: PostCardProps) {
+  const { showErrorToast } = useToast();
   const username = post.author?.username ?? "Unknown";
   const avatar = post.author?.avatar ?? null;
   const createdAt = new Date(post.createdAt).toLocaleString();
   const [liked, setLiked] = useState(post.isLiked ?? false);
+  const [isLikePopping, setIsLikePopping] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -122,6 +131,7 @@ export function PostCard({ post }: PostCardProps) {
           return;
         }
         setComments([]);
+        showErrorToast("Failed to load comments");
       } finally {
         if (isMounted) {
           setIsCommentsLoading(false);
@@ -134,7 +144,7 @@ export function PostCard({ post }: PostCardProps) {
     return () => {
       isMounted = false;
     };
-  }, [post.id]);
+  }, [post.id, showErrorToast]);
 
   function getApiBaseUrl(): string {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -161,6 +171,8 @@ export function PostCard({ post }: PostCardProps) {
 
     const previousLiked = liked;
     const previousCount = likesCount;
+    setIsLikePopping(true);
+    window.setTimeout(() => setIsLikePopping(false), 220);
     setIsTogglingLike(true);
     setError(null);
 
@@ -187,6 +199,7 @@ export function PostCard({ post }: PostCardProps) {
         setLiked(previousLiked);
         setLikesCount(previousCount);
         setError("Failed to update like");
+        showErrorToast("Failed to update like");
       } finally {
         setIsTogglingLike(false);
       }
@@ -216,6 +229,7 @@ export function PostCard({ post }: PostCardProps) {
       setLiked(previousLiked);
       setLikesCount(previousCount);
       setError("Failed to update like");
+      showErrorToast("Failed to update like");
     } finally {
       setIsTogglingLike(false);
     }
@@ -293,6 +307,7 @@ export function PostCard({ post }: PostCardProps) {
       setCommentsCount((prev) => Math.max(0, prev - 1));
       setNewComment(content);
       setError("Failed to add comment");
+      showErrorToast("Failed to add comment");
     } finally {
       setIsSubmittingComment(false);
     }
@@ -306,72 +321,86 @@ export function PostCard({ post }: PostCardProps) {
   }
 
   return (
-    <article className="rounded-2xl border border-black/10 p-4 shadow-sm">
-      <header className="mb-3 flex items-center gap-3">
-        {avatar ? (
-          <img src={avatar} alt={`${username} avatar`} className="h-10 w-10 rounded-full object-cover" />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 text-sm font-semibold">
-            {username.slice(0, 1).toUpperCase()}
-          </div>
-        )}
+    <Card className="space-y-4 border-gray-800 bg-[#111111] p-4 shadow-md">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar src={avatar} alt={`${username} avatar`} name={username} size="md" />
 
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{username}</p>
-          <p className="text-xs opacity-70">{createdAt}</p>
+          <div className="min-w-0">
+            <Link
+              href={username !== "Unknown" ? `/profile/${encodeURIComponent(username)}` : "/profile"}
+              className="block truncate text-sm font-semibold text-white hover:cursor-pointer hover:underline"
+            >
+              {username}
+            </Link>
+            <p className="text-xs text-gray-400">{createdAt}</p>
+          </div>
         </div>
       </header>
 
-      <p className="whitespace-pre-wrap break-words text-[15px] leading-6">{post.content}</p>
+      <div className="space-y-3">
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-6 text-white">{post.content}</p>
+        {post.image ? <img src={post.image} alt="Post" className="max-h-96 w-full rounded-2xl object-cover" /> : null}
+      </div>
 
-      {post.image ? <img src={post.image} alt="Post" className="mt-3 max-h-96 w-full rounded-xl object-cover" /> : null}
-
-      <footer className="mt-4 flex items-center gap-5 text-sm">
-        <div className="flex items-center gap-2">
-          <button
+      <footer className="flex flex-wrap items-center gap-3 border-t border-gray-800 pt-3 text-sm">
+        <div className="flex items-center gap-3">
+          <Button
             type="button"
             onClick={() => {
               void handleLike();
             }}
             disabled={isTogglingLike}
-            className={`cursor-pointer rounded-md border px-3 py-1.5 transition duration-200 hover:opacity-80 ${
-              liked ? "border-red-500 bg-red-500 text-white" : "border-black/20"
-            }`}
+            variant={liked ? "danger" : "secondary"}
+            className={`transition-all duration-200 ease-out ${isLikePopping ? "animate-like-pop" : ""}`}
           >
             {liked ? "❤️" : "🤍"} Like
-          </button>
-          <span className="opacity-70">{likesCount}</span>
+          </Button>
+          <span className="text-gray-400">{likesCount}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onCommentClick}
-            className="cursor-pointer rounded-md border border-black/20 px-3 py-1.5 transition duration-200 hover:opacity-80"
-          >
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="ghost" onClick={onCommentClick} className="transition duration-200">
             💬 Comment
-          </button>
-          <span className="opacity-70">{commentsCount}</span>
+          </Button>
+          <span className="text-gray-400">{commentsCount}</span>
         </div>
+
+        <Button type="button" variant="ghost" className="text-gray-300">
+          ↗ Share
+        </Button>
+
+        <Link href={username !== "Unknown" ? `/profile/${encodeURIComponent(username)}` : "/profile"}>
+          <Button type="button" variant="ghost" className="text-gray-300">
+            View
+          </Button>
+        </Link>
       </footer>
 
-      <section className="mt-4 space-y-2">
-        {isCommentsLoading ? <p className="text-sm opacity-70">Loading comments...</p> : null}
+      <section className="mt-4 space-y-4">
+        {isCommentsLoading ? <p className="text-sm text-gray-400">Loading comments...</p> : null}
 
-        {!isCommentsLoading && comments.length === 0 ? <p className="text-sm opacity-70">No comments yet</p> : null}
+        {!isCommentsLoading && comments.length === 0 ? <p className="text-sm text-gray-400">No comments yet</p> : null}
 
         {!isCommentsLoading
           ? comments.map((comment) => (
-              <div key={comment.id} className="rounded-md border border-black/10 px-3 py-2">
-                <strong className="block text-sm">{comment.user.username}</strong>
-                <p className="text-sm opacity-90">{comment.content}</p>
+              <div key={comment.id} className="rounded-md border border-gray-800 bg-[#0f0f0f] px-3 py-2">
+                <Link
+                  href={`/profile/${encodeURIComponent(comment.user.username)}`}
+                  className="block text-sm font-semibold text-white hover:cursor-pointer hover:underline"
+                >
+                  {comment.user.username}
+                </Link>
+                <p className="text-sm text-gray-300">{comment.content}</p>
               </div>
             ))
           : null}
 
-        <div className="flex items-center gap-2 pt-1">
-          <input
+        <div className="flex flex-col items-stretch gap-4 pt-1 sm:flex-row sm:items-center">
+          <InputField
             ref={commentInputRef}
+            id={`feed-comment-${post.id}`}
+            label=""
             type="text"
             value={newComment}
             onChange={(event) => setNewComment(event.target.value)}
@@ -382,23 +411,28 @@ export function PostCard({ post }: PostCardProps) {
               }
             }}
             placeholder="Write a comment..."
-            className="flex-1 rounded-md border border-black/20 px-3 py-2 text-sm outline-none"
+            className="flex-1"
             disabled={isSubmittingComment}
           />
-          <button
+          <Button
             type="button"
             onClick={() => {
               void onSubmitComment();
             }}
-            className="cursor-pointer rounded-md border border-black/20 px-3 py-2 text-sm transition duration-200 hover:opacity-80"
+            variant="secondary"
+            loading={isSubmittingComment}
             disabled={isSubmittingComment}
           >
             {isSubmittingComment ? "Posting..." : "Post"}
-          </button>
+          </Button>
         </div>
       </section>
 
-      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
-    </article>
+      {error ? (
+        <p className="mt-2 rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+          {error}
+        </p>
+      ) : null}
+    </Card>
   );
 }

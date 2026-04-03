@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { togglePostLike } from "../src/services/post";
+import { Button } from "../src/components/ui/button";
 
 type LikeButtonProps = {
   postId: string;
@@ -14,6 +15,7 @@ type LikeButtonProps = {
 export function LikeButton({ postId, isLiked, likesCount }: LikeButtonProps) {
   const router = useRouter();
   const [liked, setLiked] = useState(isLiked);
+  const [isPopping, setIsPopping] = useState(false);
   const [count, setCount] = useState(likesCount);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,8 @@ export function LikeButton({ postId, isLiked, likesCount }: LikeButtonProps) {
 
     setLiked(nextLiked);
     setCount(nextCount);
+    setIsPopping(true);
+    window.setTimeout(() => setIsPopping(false), 220);
     setIsLoading(true);
 
     try {
@@ -64,19 +68,20 @@ export function LikeButton({ postId, isLiked, likesCount }: LikeButtonProps) {
 
   return (
     <div>
-      <button
+      <Button
         type="button"
         onClick={onToggleLike}
         disabled={isLoading}
+        variant={liked ? "danger" : "secondary"}
         aria-pressed={liked}
         aria-label={liked ? "Unlike post" : "Like post"}
-        className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`inline-flex transition-all duration-200 ease-out ${isPopping ? "animate-like-pop" : ""}`}
       >
         <span>{liked ? "❤️" : "🤍"}</span>
         <span>{count}</span>
-      </button>
+      </Button>
 
-      {error ? <p className="mt-1 text-xs text-rose-700">{error}</p> : null}
+      {error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{error}</p> : null}
     </div>
   );
 }

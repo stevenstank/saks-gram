@@ -2,6 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 
+import { Button } from "../src/components/ui/button";
+import { InputField } from "../src/components/ui/input-field";
+
 type CommentInputProps = {
   postId: string;
   onCreated?: () => void;
@@ -93,34 +96,31 @@ export function CommentInput({ postId, onCreated }: CommentInputProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-      <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor={`comment-${postId}`}>
+    <form onSubmit={onSubmit} className="rounded-lg border border-gray-800 bg-[#111111] p-3 shadow-sm">
+      <label className="mb-2 block text-sm font-medium text-white" htmlFor={`comment-${postId}`}>
         Add a comment
       </label>
 
-      <input
+      <InputField
         id={`comment-${postId}`}
+        label=""
         type="text"
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder="Write a comment..."
         maxLength={300}
         disabled={isLoading}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none ring-slate-200 transition focus:ring"
+        className="w-full"
       />
 
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-xs text-slate-500">{300 - content.length} characters left</span>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <span className="text-xs text-gray-400">{300 - content.length} characters left</span>
+        <Button type="submit" loading={isLoading}>
           {isLoading ? "Posting..." : "Comment"}
-        </button>
+        </Button>
       </div>
 
-      {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}
     </form>
   );
 }

@@ -4,11 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+import { Button } from "../../components/ui/button";
+import { Card } from "../../components/ui/card";
+import { InputField } from "../../components/ui/input-field";
 import { useAuth } from "../../hooks/use-auth";
+import { useToast } from "../../hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { showErrorToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,57 +26,60 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.push("/");
+      router.push("/feed");
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Login failed";
       setError(message);
+      showErrorToast(message);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <main className="page">
-      <section className="card stack">
-        <h1>Login</h1>
-        <p className="muted">Access your SaksGram account.</p>
+    <main className="flex min-h-screen items-center justify-center bg-black px-4 py-8 md:px-6">
+      <Card className="w-full max-w-md space-y-6 rounded-2xl p-8 shadow-lg">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-semibold text-white">Login</h1>
+          <p className="text-sm text-gray-400">Welcome back to SaksGram.</p>
+        </div>
 
-        <form onSubmit={onSubmit} className="stack">
-          <label className="stack-xs">
-            <span>Email</span>
-            <input
-              className="input"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
-              required
-            />
-          </label>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <InputField
+            id="login-email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
 
-          <label className="stack-xs">
-            <span>Password</span>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </label>
+          <InputField
+            id="login-password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
 
-          {error ? <p className="error">{error}</p> : null}
+          {error ? (
+            <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+              {error}
+            </p>
+          ) : null}
 
-          <button className="button" type="submit" disabled={isSubmitting}>
+          <Button type="submit" loading={isSubmitting} className="w-full">
             {isSubmitting ? "Logging in..." : "Login"}
-          </button>
+          </Button>
         </form>
 
-        <p className="muted">
-          Need an account? <Link href="/signup">Create one</Link>
+        <p className="text-center text-sm text-gray-400">
+          Need an account? <Link className="font-medium text-yellow-400" href="/signup">Create one</Link>
         </p>
-      </section>
+      </Card>
     </main>
   );
 }

@@ -17,6 +17,7 @@ const db = prisma as unknown as {
   user: {
     findUnique(args: unknown): Promise<ProfileUserRecord | null>;
     findFirst(args: unknown): Promise<ProfileUserRecord | null>;
+    findMany(args: unknown): Promise<ProfileUserRecord[]>;
     update(args: unknown): Promise<ProfileUserRecord>;
   };
 };
@@ -42,6 +43,43 @@ function mapProfile(user: {
     bio: user.bio ?? undefined,
     avatar: user.avatar ?? undefined,
   };
+}
+
+export async function getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const currentUserId = req.user?.userId;
+
+    const users = await db.user.findMany({
+      ...(currentUserId
+        ? {
+            where: {
+              id: {
+                not: currentUserId,
+              },
+            },
+          }
+        : {}),
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        bio: true,
+        avatar: true,
+      },
+      orderBy: {
+        username: "asc",
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        users: users.map(mapProfile),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {

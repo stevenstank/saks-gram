@@ -1,7 +1,12 @@
+import Link from "next/link";
+
 import type { PostAuthor } from "../types/post";
 import { CommentInput } from "../../components/CommentInput";
 import { CommentList } from "../../components/CommentList";
 import { LikeButton } from "../../components/LikeButton";
+import { Avatar } from "./ui/avatar";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 
 type PostCardProps = {
   postId: string;
@@ -16,39 +21,49 @@ type PostCardProps = {
 export function PostCard({ postId, content, author, createdAt, imageUrl, isLiked, likesCount }: PostCardProps) {
   const formattedDate = new Date(createdAt).toLocaleString();
   const username = author?.username || "Unknown";
+  const profileHref = username !== "Unknown" ? `/profile/${encodeURIComponent(username)}` : "/profile";
 
   return (
-    <article className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <header className="flex items-center gap-3">
-        {author?.avatar ? (
-          <img src={author.avatar} alt={`${username} avatar`} width={32} height={32} className="rounded-full object-cover" />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
-            {username.slice(0, 1).toUpperCase()}
+    <Card className="space-y-4 border-gray-800 bg-[#111111] p-4 shadow-md">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar src={author?.avatar ?? null} alt={`${username} avatar`} name={username} size="md" />
+          <div className="min-w-0">
+            <Link href={profileHref} className="block truncate text-sm font-semibold text-white hover:cursor-pointer hover:underline">
+              {username}
+            </Link>
+            <time dateTime={createdAt} className="text-xs text-gray-400">
+              {formattedDate}
+            </time>
           </div>
-        )}
-        <div className="min-w-0">
-          <strong className="block truncate text-sm text-slate-900">{username}</strong>
-          <time dateTime={createdAt} className="text-xs text-slate-500">
-            {formattedDate}
-          </time>
         </div>
       </header>
 
-      {content ? <p className="whitespace-pre-wrap break-words text-sm text-slate-800">{content}</p> : null}
+      <div className="space-y-3">
+        {content ? <p className="whitespace-pre-wrap break-words text-sm leading-6 text-white">{content}</p> : null}
 
-      <div className="pt-1">
-        <LikeButton postId={postId} isLiked={Boolean(isLiked)} likesCount={likesCount ?? 0} />
+        {imageUrl ? <img src={imageUrl} alt="Post image" className="max-h-[420px] w-full rounded-2xl object-cover" /> : null}
       </div>
 
-      {imageUrl ? (
-        <img src={imageUrl} alt="Post image" className="max-h-[420px] w-full rounded-lg object-cover" />
-      ) : null}
+      <footer className="flex flex-wrap items-center gap-3 border-t border-gray-800 pt-3">
+        <LikeButton postId={postId} isLiked={Boolean(isLiked)} likesCount={likesCount ?? 0} />
+        <Button type="button" variant="ghost" className="text-gray-300">
+          💬 Comment
+        </Button>
+        <Button type="button" variant="ghost" className="text-gray-300">
+          ↗ Share
+        </Button>
+        <Link href={profileHref}>
+          <Button type="button" variant="ghost" className="text-gray-300">
+            View
+          </Button>
+        </Link>
+      </footer>
 
-      <div className="space-y-3 border-t border-slate-100 pt-3">
+      <div className="space-y-3 border-t border-gray-800 pt-3">
         <CommentInput postId={postId} />
         <CommentList postId={postId} />
       </div>
-    </article>
+    </Card>
   );
 }

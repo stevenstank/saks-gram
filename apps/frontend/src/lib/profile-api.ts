@@ -7,6 +7,7 @@ type ApiSuccess<T> = {
 };
 
 type ProfileUser = Pick<AuthUser, "id" | "username" | "email" | "bio" | "avatar">;
+export type DiscoverUser = Pick<AuthUser, "id" | "username" | "avatar">;
 
 export type BasicFollowUser = {
   id: string;
@@ -245,4 +246,23 @@ export async function getFollowing(userId: string): Promise<BasicFollowUser[]> {
   }
 
   return (body as ApiSuccess<{ following: BasicFollowUser[] }>).data.following;
+}
+
+export async function getAllUsers(token?: string): Promise<DiscoverUser[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/users`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(token),
+    },
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+
+  return (body as ApiSuccess<{ users: DiscoverUser[] }>).data.users;
 }

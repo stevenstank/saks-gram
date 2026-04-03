@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type CommentUser = {
   username: string;
   avatar: string | null;
@@ -17,31 +19,34 @@ type CommentItemProps = {
 export function CommentItem({ comment }: CommentItemProps) {
   const formattedDate = new Date(comment.createdAt).toLocaleString();
   const username = comment.user.username;
+  const profileHref = `/profile/${encodeURIComponent(username)}`;
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+    <article className="rounded-lg border border-gray-800 bg-[#111111] p-3 shadow-sm">
       <header className="mb-2 flex items-center gap-3">
         {comment.user.avatar ? (
           <img
             src={comment.user.avatar}
             alt={`${username} avatar`}
-            className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+            className="h-8 w-8 rounded-full border border-gray-800 object-cover"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-semibold text-white">
             {username.slice(0, 1).toUpperCase()}
           </div>
         )}
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-800">{username}</p>
-          <time className="text-xs text-slate-500" dateTime={comment.createdAt}>
+          <Link href={profileHref} className="block truncate text-sm font-semibold text-white hover:cursor-pointer hover:underline">
+            {username}
+          </Link>
+          <time className="text-xs text-gray-400" dateTime={comment.createdAt}>
             {formattedDate}
           </time>
         </div>
       </header>
 
-      <p className="whitespace-pre-wrap break-words text-sm text-slate-700">{comment.content}</p>
+      <p className="whitespace-pre-wrap break-words text-sm text-gray-300">{comment.content}</p>
     </article>
   );
 }

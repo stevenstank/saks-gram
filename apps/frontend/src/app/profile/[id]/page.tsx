@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { FollowButton } from "../../../components/follow-button";
 import { PostCard } from "../../../components/post-card";
+import { Button } from "../../../components/ui/button";
+import { Avatar } from "../../../components/ui/avatar";
 import { useAuth } from "../../../hooks/use-auth";
+import { useRequireAuth } from "../../../hooks/use-require-auth";
+import { useToast } from "../../../hooks/use-toast";
 import { getFollowers, getFollowing, getProfile } from "../../../lib/profile-api";
-import { createPost, getPostsByUser, uploadPostImage } from "../../../services/post";
+import { getPostsByUser } from "../../../services/post";
 import type { Post } from "../../../types/post";
 
 type ProfileUser = {
@@ -23,7 +27,9 @@ type ProfileUser = {
 export default function PublicProfilePage() {
   const params = useParams<{ id: string }>();
   const username = useMemo(() => params?.id ?? "", [params]);
+  const { isCheckingAuth } = useRequireAuth();
   const { user: authUser, isAuthenticated, isBootstrapping } = useAuth();
+  const { showErrorToast } = useToast();
 
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,21 +37,13 @@ export default function PublicProfilePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isPostsLoading, setIsPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [postContent, setPostContent] = useState("");
-  const [postImageFile, setPostImageFile] = useState<File | null>(null);
-  const [postImagePreviewUrl, setPostImagePreviewUrl] = useState<string | null>(null);
-  const [createPostError, setCreatePostError] = useState<string | null>(null);
-  const [isCreatingPost, setIsCreatingPost] = useState(false);
-
-  const canCreatePost = useMemo(() => {
+  const isOwnProfile = useMemo(() => {
     if (isBootstrapping || !isAuthenticated || !authUser || !user) {
       return false;
     }
 
     return authUser.username === user.username;
   }, [authUser, isAuthenticated, isBootstrapping, user]);
-
-  const remainingChars = 500 - postContent.length;
 
   const { data: followers = [] } = useSWR(username ? `followers:${username}` : null, () => getFollowers(username));
   const { data: following = [] } = useSWR(username ? `following:${username}` : null, () => getFollowing(username));
@@ -67,11 +65,12 @@ export default function PublicProfilePage() {
       .catch((fetchError) => {
         const message = fetchError instanceof Error ? fetchError.message : "Failed to load profile";
         setError(message);
+        showErrorToast(message);
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, [username]);
+  }, [showErrorToast, username]);
 
   useEffect(() => {
     if (!username) {
@@ -91,75 +90,28 @@ export default function PublicProfilePage() {
       .catch((fetchError) => {
         const message = fetchError instanceof Error ? fetchError.message : "Failed to load posts";
         setPostsError(message);
+        showErrorToast(message);
       })
       .finally(() => {
         setIsPostsLoading(false);
       });
-  }, [username]);
+  }, [showErrorToast, username]);
 
-  useEffect(() => {
-    if (!postImageFile) {
-      if (postImagePreviewUrl) {
-        URL.revokeObjectURL(postImagePreviewUrl);
-        setPostImagePreviewUrl(null);
-      }
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(postImageFile);
-    setPostImagePreviewUrl(objectUrl);
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [postImageFile]);
-
-  async function onCreatePost(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const trimmed = postContent.trim();
-
-    if (!trimmed && !postImageFile) {
-      setCreatePostError("Add text or an image to create a post");
-      return;
-    }
-
-    if (trimmed.length > 500) {
-      setCreatePostError("Content must be at most 500 characters");
-      return;
-    }
-
-    setIsCreatingPost(true);
-    setCreatePostError(null);
-
-    try {
-      let imageUrl: string | undefined;
-
-      if (postImageFile) {
-        imageUrl = await uploadPostImage(postImageFile);
-      }
-
-      const createdPost = await createPost({
-        content: trimmed,
-        imageUrl,
-      });
-
-      setPosts((current) => [createdPost, ...current]);
-      setPostContent("");
-      setPostImageFile(null);
-    } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : "Failed to create post";
-      setCreatePostError(message);
-    } finally {
-      setIsCreatingPost(false);
-    }
+  if (isCheckingAuth) {
+    return (
+      <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mx-auto max-w-xl rounded-2xl border border-gray-800 bg-[#111111] p-6 shadow-sm">
+          <p className="text-sm text-gray-400">Checking your session...</p>
+        </div>
+      </main>
+    );
   }
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-10">
-        <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-600">Loading profile...</p>
+      <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mx-auto max-w-xl rounded-2xl border border-gray-800 bg-[#111111] p-6 shadow-sm">
+          <p className="text-sm text-gray-400">Loading profile...</p>
         </div>
       </main>
     );
@@ -167,126 +119,72 @@ export default function PublicProfilePage() {
 
   if (error || !user) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-10">
-        <div className="mx-auto max-w-xl rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
-          <h1 className="text-lg font-semibold text-rose-800">Profile Error</h1>
-          <p className="mt-2 text-sm text-rose-700">{error ?? "User not found"}</p>
+      <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mx-auto max-w-xl rounded-2xl border border-red-900/50 bg-red-950/30 p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-red-300">Profile Error</h1>
+          <p className="mt-2 text-sm text-red-300">{error ?? "User not found"}</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          {user.avatar ? (
-            <img
-              src={user.avatar}
-              alt={`${user.username} avatar`}
-              className="h-20 w-20 rounded-full border border-slate-200 object-cover"
-            />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-500">
-              {user.username.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+    <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+      <section className="mx-auto w-full max-w-3xl space-y-6">
+        <div className="rounded-2xl border border-gray-800 bg-[#111111] p-5 shadow-soft sm:p-7">
+          <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar src={user.avatar ?? null} alt={`${user.username} avatar`} name={user.username} size="lg" />
 
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{user.username}</h1>
-            <p className="text-sm text-slate-500">{user.email}</p>
-            <div className="mt-2 flex gap-4 text-sm text-slate-700">
-              <Link href={`/profile/${user.username}/followers`} className="hover:underline">
-                <span className="font-semibold">{followers.length}</span> Followers
-              </Link>
-              <Link href={`/profile/${user.username}/following`} className="hover:underline">
-                <span className="font-semibold">{following.length}</span> Following
-              </Link>
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-semibold text-white">{user.username}</h1>
+                <p className="truncate text-sm text-gray-400">{user.email}</p>
+              </div>
             </div>
+
+            {isOwnProfile ? (
+              <Link href="/profile/edit">
+                <Button variant="secondary">Edit Profile</Button>
+              </Link>
+            ) : null}
           </div>
+
+          <div className="mt-6 rounded-xl bg-[#0f0f0f] p-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Bio</h2>
+            <p className="mt-2 text-sm text-gray-200">{user.bio || "No bio added yet."}</p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-gray-300">
+            <Link href={`/profile/${user.username}/followers`} className="transition hover:text-white hover:underline">
+              <span className="font-semibold text-white">{followers.length}</span> Followers
+            </Link>
+            <Link href={`/profile/${user.username}/following`} className="transition hover:text-white hover:underline">
+              <span className="font-semibold text-white">{following.length}</span> Following
+            </Link>
+            <span>
+              <span className="font-semibold text-white">{posts.length}</span> Posts
+            </span>
+          </div>
+
+          {!isOwnProfile ? <FollowButton targetUserId={user.id} targetUsername={user.username} /> : null}
         </div>
 
-        <FollowButton targetUserId={user.id} targetUsername={user.username} />
+        <div className="border-t border-gray-800 pt-6">
+          <h2 className="text-base font-semibold text-white">Posts</h2>
 
-        <div className="mt-6 rounded-xl bg-slate-50 p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Bio</h2>
-          <p className="mt-2 text-sm text-slate-700">{user.bio || "No bio added yet."}</p>
-        </div>
+          {isPostsLoading ? <p className="mt-3 text-sm text-gray-400">Loading posts...</p> : null}
 
-        {canCreatePost ? (
-          <form className="mt-6" onSubmit={onCreatePost}>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Create Post</h2>
-
-            <textarea
-              className="mt-2 w-full rounded border border-slate-300 p-2 text-sm"
-              rows={4}
-              maxLength={500}
-              value={postContent}
-              onChange={(event) => {
-                setPostContent(event.target.value);
-                if (createPostError) {
-                  setCreatePostError(null);
-                }
-              }}
-              placeholder="Write a post..."
-              disabled={isCreatingPost}
-            />
-
-            <div className="mt-2">
-              <input
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  setPostImageFile(file);
-                  if (createPostError) {
-                    setCreatePostError(null);
-                  }
-                }}
-                disabled={isCreatingPost}
-              />
-
-              {postImagePreviewUrl ? (
-                <div className="mt-2">
-                  <img src={postImagePreviewUrl} alt="Post preview" className="max-h-64 rounded border border-slate-300" />
-                  <button
-                    type="button"
-                    className="mt-2 rounded border border-slate-300 px-2 py-1 text-xs"
-                    onClick={() => setPostImageFile(null)}
-                    disabled={isCreatingPost}
-                  >
-                    Remove image
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            <p className="mt-1 text-xs text-slate-500">{remainingChars} characters left</p>
-
-            <button
-              type="submit"
-              className="mt-2 rounded border border-slate-300 px-3 py-1 text-sm"
-              disabled={isCreatingPost}
-            >
-              {isCreatingPost ? "Posting..." : "Post"}
-            </button>
-
-            {createPostError ? <p className="mt-2 text-sm text-rose-700">{createPostError}</p> : null}
-          </form>
-        ) : null}
-
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Posts</h2>
-
-          {isPostsLoading ? <p className="mt-2 text-sm text-slate-700">Loading posts...</p> : null}
-
-          {postsError ? <p className="mt-2 text-sm text-rose-700">{postsError}</p> : null}
-
-          {!isPostsLoading && !postsError && posts.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-700">No posts yet.</p>
+          {postsError ? (
+            <p className="mt-3 rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+              {postsError}
+            </p>
           ) : null}
 
-          <div className="mt-3 space-y-3">
+          {!isPostsLoading && !postsError && posts.length === 0 ? (
+            <p className="mt-3 text-sm text-gray-400">No posts yet.</p>
+          ) : null}
+
+          <div className="mt-4 space-y-6">
             {posts.map((post) => (
               <PostCard
                 key={post.id}

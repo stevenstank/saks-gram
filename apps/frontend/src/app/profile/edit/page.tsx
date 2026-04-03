@@ -3,7 +3,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "../../../hooks/use-auth";
+import { useToast } from "../../../hooks/use-toast";
 import { getCurrentUser, updateProfile, uploadAvatar } from "../../../lib/profile-api";
+import { Button } from "../../../components/ui/button";
 
 type EditableProfile = {
   id: string;
@@ -15,6 +17,7 @@ type EditableProfile = {
 
 export default function EditProfilePage() {
   const { token, isBootstrapping } = useAuth();
+  const { showErrorToast, showSuccessToast } = useToast();
   const [profile, setProfile] = useState<EditableProfile | null>(null);
   const [bio, setBio] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -47,11 +50,12 @@ export default function EditProfilePage() {
       .catch((fetchError) => {
         const message = fetchError instanceof Error ? fetchError.message : "Failed to load profile";
         setError(message);
+        showErrorToast(message);
       })
       .finally(() => {
         setIsLoadingProfile(false);
       });
-  }, [isBootstrapping, token]);
+  }, [isBootstrapping, showErrorToast, token]);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -78,7 +82,9 @@ export default function EditProfilePage() {
     event.preventDefault();
 
     if (!token) {
-      setError("You must be logged in to edit your profile");
+      const message = "You must be logged in to edit your profile";
+      setError(message);
+      showErrorToast(message);
       return;
     }
 
@@ -105,10 +111,13 @@ export default function EditProfilePage() {
       setBio(updated.bio ?? "");
       setPreviewUrl(updated.avatar ?? null);
       setSelectedFile(null);
-      setSuccess("Profile updated successfully");
+      const message = "Profile updated successfully";
+      setSuccess(message);
+      showSuccessToast(message);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Failed to update profile";
       setError(message);
+      showErrorToast(message);
     } finally {
       setIsSaving(false);
     }
@@ -116,9 +125,9 @@ export default function EditProfilePage() {
 
   if (isLoadingProfile || isBootstrapping) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-10">
-        <section className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-600">Loading edit form...</p>
+      <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+        <section className="mx-auto max-w-2xl rounded-2xl border border-gray-800 bg-[#111111] p-6 shadow-sm">
+          <p className="text-sm text-gray-400">Loading edit form...</p>
         </section>
       </main>
     );
@@ -126,37 +135,37 @@ export default function EditProfilePage() {
 
   if (error && !profile) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-10">
-        <section className="mx-auto max-w-2xl rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
-          <h1 className="text-lg font-semibold text-rose-800">Edit Profile Error</h1>
-          <p className="mt-2 text-sm text-rose-700">{error}</p>
+      <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+        <section className="mx-auto max-w-2xl rounded-2xl border border-red-900/50 bg-red-950/30 p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-red-300">Edit Profile Error</h1>
+          <p className="mt-2 text-sm text-red-300">{error}</p>
         </section>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <section className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Edit Profile</h1>
-        <p className="mt-1 text-sm text-slate-500">Update your bio and avatar.</p>
+    <main className="min-h-screen bg-black px-4 py-6 sm:px-6 sm:py-8">
+      <section className="mx-auto max-w-2xl rounded-2xl border border-gray-800 bg-[#111111] p-5 shadow-sm sm:p-6">
+        <h1 className="text-2xl font-semibold text-white">Edit Profile</h1>
+        <p className="mt-1 text-sm text-gray-400">Update your bio and avatar.</p>
 
-        <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-          <div className="flex items-center gap-4">
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             {previewUrl ? (
               <img
                 src={previewUrl}
                 alt="Avatar preview"
-                className="h-20 w-20 rounded-full border border-slate-200 object-cover"
+                className="h-20 w-20 rounded-full border border-gray-800 object-cover"
               />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-500">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-800 text-xl font-semibold text-white">
                 {avatarFallback}
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700" htmlFor="avatar">
+              <label className="block text-sm font-medium text-white" htmlFor="avatar">
                 Upload avatar
               </label>
               <input
@@ -167,14 +176,14 @@ export default function EditProfilePage() {
                   const file = event.target.files?.[0] ?? null;
                   setSelectedFile(file);
                 }}
-                className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-gray-300 file:mr-4 file:rounded-md file:border file:border-gray-800 file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
               />
-              <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB.</p>
+              <p className="text-xs text-gray-400">PNG, JPG, WEBP up to 5MB.</p>
             </div>
           </div>
 
           <div>
-            <label htmlFor="bio" className="mb-2 block text-sm font-medium text-slate-700">
+            <label htmlFor="bio" className="mb-2 block text-sm font-medium text-white">
               Bio
             </label>
             <textarea
@@ -183,22 +192,22 @@ export default function EditProfilePage() {
               onChange={(event) => setBio(event.target.value)}
               maxLength={280}
               rows={4}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500"
+              className="w-full rounded-lg border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30"
               placeholder="Tell people a little about yourself"
             />
-            <p className="mt-1 text-xs text-slate-500">{bio.length}/280</p>
+            <p className="mt-1 text-xs text-gray-400">{bio.length}/280</p>
           </div>
 
-          {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
-          {success ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p> : null}
+          {error ? (
+            <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+              {error}
+            </p>
+          ) : null}
+          {success ? <p className="rounded-lg bg-emerald-900/40 px-3 py-2 text-sm text-emerald-300">{success}</p> : null}
 
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
+          <Button type="submit" loading={isSaving}>
             {isSaving ? "Saving..." : "Save changes"}
-          </button>
+          </Button>
         </form>
       </section>
     </main>

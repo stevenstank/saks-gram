@@ -4,6 +4,9 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { createPost, uploadPostImage } from "../services/post";
 import type { Post } from "../types/post";
+import { useToast } from "../hooks/use-toast";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 
 type CreatePostProps = {
   onCreated?: (post: Post) => void;
@@ -12,6 +15,7 @@ type CreatePostProps = {
 const MAX_CONTENT_LENGTH = 500;
 
 export function CreatePost({ onCreated }: CreatePostProps) {
+  const { showErrorToast, showSuccessToast } = useToast();
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -43,12 +47,16 @@ export function CreatePost({ onCreated }: CreatePostProps) {
     const trimmed = content.trim();
 
     if (!trimmed && !imageFile) {
-      setError("Add text or an image");
+      const message = "Add text or an image";
+      setError(message);
+      showErrorToast(message);
       return;
     }
 
     if (trimmed.length > MAX_CONTENT_LENGTH) {
-      setError("Content must be at most 500 characters");
+      const message = "Content must be at most 500 characters";
+      setError(message);
+      showErrorToast(message);
       return;
     }
 
@@ -70,59 +78,69 @@ export function CreatePost({ onCreated }: CreatePostProps) {
       setContent("");
       setImageFile(null);
       onCreated?.(post);
+      showSuccessToast("Post created");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to create post");
+      const message = submitError instanceof Error ? submitError.message : "Failed to create post";
+      setError(message);
+      showErrorToast(message);
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <textarea
-        value={content}
-        onChange={(event) => {
-          setContent(event.target.value);
-          if (error) {
-            setError(null);
-          }
-        }}
-        maxLength={MAX_CONTENT_LENGTH}
-        rows={4}
-        placeholder="Write a post..."
-        disabled={isLoading}
-      />
+    <Card>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <textarea
+          value={content}
+          onChange={(event) => {
+            setContent(event.target.value);
+            if (error) {
+              setError(null);
+            }
+          }}
+          maxLength={MAX_CONTENT_LENGTH}
+          rows={4}
+          placeholder="Write a post..."
+          disabled={isLoading}
+          className="w-full rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/30"
+        />
 
-      <input
-        type="file"
-        accept="image/jpeg,image/jpg,image/png,image/webp"
-        onChange={(event) => {
-          setImageFile(event.target.files?.[0] ?? null);
-          if (error) {
-            setError(null);
-          }
-        }}
-        disabled={isLoading}
-      />
+        <input
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          onChange={(event) => {
+            setImageFile(event.target.files?.[0] ?? null);
+            if (error) {
+              setError(null);
+            }
+          }}
+          disabled={isLoading}
+          className="block w-full text-sm text-gray-300 file:mr-3 file:rounded-lg file:border file:border-gray-800 file:bg-gray-900 file:px-3 file:py-2 file:text-sm file:text-white"
+        />
 
-      {imagePreviewUrl ? (
-        <div>
-          <img src={imagePreviewUrl} alt="Post preview" style={{ maxHeight: "320px", borderRadius: "8px" }} />
-          <button type="button" onClick={() => setImageFile(null)} disabled={isLoading}>
-            Remove image
-          </button>
+        {imagePreviewUrl ? (
+          <div className="space-y-4">
+            <img src={imagePreviewUrl} alt="Post preview" className="max-h-80 rounded-xl object-cover" />
+            <Button type="button" variant="ghost" onClick={() => setImageFile(null)} disabled={isLoading}>
+              Remove image
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-xs text-gray-400">{remainingChars} characters left</p>
+          <Button type="submit" loading={isLoading}>
+            {isLoading ? "Posting..." : "Post"}
+          </Button>
         </div>
-      ) : null}
 
-      <p>{remainingChars} characters left</p>
-
-      {isLoading ? <p>Creating post...</p> : null}
-
-      <button type="submit" disabled={isLoading}>
-        {isLoading ? "Posting..." : "Post"}
-      </button>
-
-      {error ? <p>{error}</p> : null}
-    </form>
+        {error ? (
+          <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+            {error}
+          </p>
+        ) : null}
+      </form>
+    </Card>
   );
 }

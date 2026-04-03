@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 import { useAuth } from "../hooks/use-auth";
+import { useToast } from "../hooks/use-toast";
 import { followUser, getFollowStatus, unfollowUser } from "../lib/profile-api";
+import { Button } from "./ui/button";
 
 type FollowButtonProps = {
   targetUserId: string;
   targetUsername: string;
+  compact?: boolean;
 };
 
 function getStatusKey(targetUserId: string, token: string | null): string | null {
@@ -19,11 +22,14 @@ function getStatusKey(targetUserId: string, token: string | null): string | null
   return `follow-status:${targetUserId}:${token}`;
 }
 
-export function FollowButton({ targetUserId, targetUsername }: FollowButtonProps) {
+export function FollowButton({ targetUserId, targetUsername, compact = false }: FollowButtonProps) {
   const { user, token, isAuthenticated, isBootstrapping } = useAuth();
+  const { showErrorToast, showSuccessToast } = useToast();
   const { mutate } = useSWRConfig();
   const [actionError, setActionError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const currentUserId = user?.id ?? null;
 
   const isOwnProfile = useMemo(() => currentUserId === targetUserId, [targetUserId, currentUserId]);
@@ -50,7 +56,7 @@ export function FollowButton({ targetUserId, targetUsername }: FollowButtonProps
 
   const isCurrentlyFollowing = Boolean(isFollowing);
 
-  async function onToggleFollow() {
+  async function onToggleFollow(nextFollowingState: boolean) {
     if (!token || isMutating || !statusKey || !currentUserId) {
       return;
     }
@@ -58,47 +64,165 @@ export function FollowButton({ targetUserId, targetUsername }: FollowButtonProps
     setActionError(null);
     setIsMutating(true);
 
-    const optimisticNext = !isCurrentlyFollowing;
+    const optimisticNext = nextFollowingState;
 
     await mutate(statusKey, optimisticNext, false);
 
     try {
-      if (isCurrentlyFollowing) {
-        await unfollowUser(targetUserId, token);
-      } else {
+      if (nextFollowingState) {
         await followUser(targetUserId, token);
+      } else {
+        await unfollowUser(targetUserId, token);
       }
 
       await Promise.all([
         mutate(statusKey),
-        mutate(`followers:${targetUserId}`),
+        mutate(`followers:${targetUsername}`),
+        mutate(`following:${targetUsername}`),
         mutate(`following:${currentUserId}`),
       ]);
+
+      if (nextFollowingState) {
+        showSuccessToast(`You are now following ${targetUsername}`);
+      }
     } catch (error) {
       await mutate(statusKey);
-      setActionError(error instanceof Error ? error.message : "Unable to update follow state");
+      const message = error instanceof Error ? error.message : "Unable to update follow state";
+      setActionError(message);
+      showErrorToast(message);
     } finally {
       setIsMutating(false);
     }
   }
 
-  return (
-    <div className="mt-4 flex flex-col items-start gap-2">
-      <button
-        type="button"
-        onClick={onToggleFollow}
-        disabled={isLoading || isMutating}
-        className={
-          isCurrentlyFollowing
-            ? "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            : "rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        }
-        aria-label={isCurrentlyFollowing ? `Unfollow ${targetUsername}` : `Follow ${targetUsername}`}
-      >
-        {isMutating ? "Updating..." : isCurrentlyFollowing ? "Unfollow" : "Follow"}
-      </button>
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
 
-      {actionError ? <p className="text-sm text-rose-700">{actionError}</p> : null}
+    function handleOutsideClick(event: MouseEvent): void {
+      if (!menuRef.current) {
+        return;
+      }
+
+      if (menuRef.current.contains(event.target as Node)) {
+        return;
+      }
+
+      setIsMenuOpen(false);
+    }
+
+    window.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isMenuOpen]);
+
+  function onMessageClick(): void {
+    showSuccessToast("Messaging will be available soon");
+    setIsMenuOpen(false);
+  }
+
+  async function onUnfollowClick(): Promise<void> {
+    setIsMenuOpen(false);
+    await onToggleFollow(false);
+  }
+
+  async function onFollowClick(): Promise<void> {
+    await onToggleFollow(true);
+  }
+
+  if (compact) {
+    return (
+      <div className="flex flex-col items-end gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            void onToggleFollow(!isCurrentlyFollowing);
+          }}
+          disabled={isLoading || isMutating}
+          aria-label={isCurrentlyFollowing ? `Unfollow ${targetUsername}` : `Follow ${targetUsername}`}
+          className="rounded-md bg-yellow-400 px-3 py-1 text-sm font-medium text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isMutating ? "..." : isCurrentlyFollowing ? "Following" : "Follow"}
+        </button>
+
+        {actionError ? (
+          <p className="rounded-md border border-red-900/50 bg-red-950/30 px-2 py-1 text-xs text-red-300">
+            {actionError}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 flex flex-col items-start gap-3">
+      {!isCurrentlyFollowing ? (
+        <Button
+          type="button"
+          onClick={() => {
+            void onFollowClick();
+          }}
+          variant="primary"
+          loading={isMutating}
+          disabled={isLoading || isMutating}
+          aria-label={`Follow ${targetUsername}`}
+        >
+          {isMutating ? "Updating..." : "Follow"}
+        </Button>
+      ) : (
+        <div ref={menuRef} className="relative flex items-center gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsMenuOpen((current) => !current)}
+            disabled={isLoading || isMutating}
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+            aria-label={`Following options for ${targetUsername}`}
+          >
+            Following
+          </Button>
+
+          <Button
+            type="button"
+            variant="primary"
+            onClick={onMessageClick}
+            disabled={isLoading || isMutating}
+          >
+            Message
+          </Button>
+
+          {isMenuOpen ? (
+            <div className="absolute left-0 top-12 z-20 w-40 rounded-xl border border-gray-800 bg-[#0f0f0f] p-2 shadow-medium">
+              <button
+                type="button"
+                className="w-full rounded-lg px-3 py-2 text-left text-sm text-white transition hover:bg-gray-800"
+                onClick={() => {
+                  void onUnfollowClick();
+                }}
+                disabled={isMutating}
+              >
+                Unfollow
+              </button>
+              <button
+                type="button"
+                className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-white transition hover:bg-gray-800"
+                onClick={onMessageClick}
+              >
+                Message
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {actionError ? (
+        <p className="rounded-md border border-red-900/50 bg-red-950/30 px-2.5 py-1.5 text-sm text-red-300">
+          {actionError}
+        </p>
+      ) : null}
     </div>
   );
 }

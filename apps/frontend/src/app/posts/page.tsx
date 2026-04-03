@@ -29,8 +29,8 @@ export default function PostsPage() {
   }, []);
 
   return (
-    <main>
-      <h1>Posts</h1>
+    <main className="mx-auto w-full max-w-[760px] space-y-6 px-4 py-6 sm:px-6">
+      <h1 className="text-2xl font-semibold text-white">Posts</h1>
 
       <CreatePost
         onCreated={(post) => {
@@ -38,11 +38,15 @@ export default function PostsPage() {
         }}
       />
 
-      {isLoading ? <p>Loading posts...</p> : null}
-      {error ? <p>{error}</p> : null}
-      {!isLoading && !error && posts.length === 0 ? <p>No posts yet</p> : null}
+      {isLoading ? <p className="text-sm text-gray-400">Loading posts...</p> : null}
+      {error ? (
+        <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+          {error}
+        </p>
+      ) : null}
+      {!isLoading && !error && posts.length === 0 ? <p className="text-sm text-gray-400">No posts yet</p> : null}
 
-      <section>
+      <section className="space-y-6">
         {posts.map((post) => (
           <PostCard
             key={post.id}
