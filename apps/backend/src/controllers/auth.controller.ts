@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 
+import { getEnv } from "../config/env";
 import { prisma } from "../config/prisma";
 import type { LoginInput, RegisterInput } from "../types/auth";
 import { AppError } from "../utils/app-error";
@@ -27,12 +28,23 @@ const db = prisma as unknown as {
 
 const AUTH_COOKIE_NAME = "saksgram.token";
 
-const AUTH_COOKIE_OPTIONS = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  secure: false,
-  path: "/",
-};
+function getAuthCookieOptions(): {
+  httpOnly: true;
+  sameSite: "none";
+  secure: boolean;
+  path: "/";
+  maxAge: number;
+} {
+  const { NODE_ENV } = getEnv();
+
+  return {
+    httpOnly: true,
+    sameSite: "none",
+    secure: NODE_ENV === "production",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
 
 export async function register(
   req: Request,
@@ -80,7 +92,7 @@ export async function register(
       email: user.email,
     });
 
-    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
     res.status(201).json({
       success: true,
@@ -125,7 +137,7 @@ export async function login(
       email: user.email,
     });
 
-    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -184,6 +196,30 @@ export async function me(
       data: {
         user,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logout(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const cookieOptions = getAuthCookieOptions();
+
+    res.clearCookie(AUTH_COOKIE_NAME, {
+      httpOnly: cookieOptions.httpOnly,
+      sameSite: cookieOptions.sameSite,
+      secure: cookieOptions.secure,
+      path: cookieOptions.path,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Logout successful",
     });
   } catch (error) {
     next(error);

@@ -2,12 +2,16 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import express, { type Request, type Response, type NextFunction } from "express";
 
+import { getEnv } from "./config/env";
 import { globalErrorHandler } from "./middleware/error.middleware";
 import feedRouter from "./routes/feed.routes";
 import apiRouter from "./routes";
 import { AppError } from "./utils/app-error";
 
 const app = express();
+const { FRONTEND_URL } = getEnv();
+
+app.set("trust proxy", 1);
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
@@ -16,7 +20,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: FRONTEND_URL,
     credentials: true,
   }),
 );

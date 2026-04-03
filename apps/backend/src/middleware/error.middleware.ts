@@ -6,7 +6,7 @@ import { AppError } from "../utils/app-error";
 
 export function globalErrorHandler(
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
@@ -66,7 +66,11 @@ export function globalErrorHandler(
     return;
   }
 
-  console.error("Unexpected error:", err);
+  console.error("Unexpected error", {
+    method: req.method,
+    route: req.originalUrl,
+    error: err,
+  });
 
   res.status(500).json({
     success: false,

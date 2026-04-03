@@ -1,8 +1,11 @@
 type AppEnv = {
   PORT: number;
   DATABASE_URL: string;
+  MONGO_URI: string | null;
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
+  FRONTEND_URL: string;
+  NODE_ENV: string;
 };
 
 function getRequiredEnv(name: string): string {
@@ -15,8 +18,34 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
+function getOptionalEnv(name: string): string | null {
+  const value = process.env[name];
+
+  if (!value || value.trim() === "") {
+    return null;
+  }
+
+  return value;
+}
+
+function getDatabaseUrl(): { databaseUrl: string; mongoUri: string | null } {
+  const mongoUri = getOptionalEnv("MONGO_URI");
+  const databaseUrl = getOptionalEnv("DATABASE_URL") ?? mongoUri;
+
+  if (!databaseUrl) {
+    throw new Error("Missing required environment variable: DATABASE_URL (or MONGO_URI fallback)");
+  }
+
+  process.env.DATABASE_URL = databaseUrl;
+
+  return {
+    databaseUrl,
+    mongoUri,
+  };
+}
+
 function getPort(): number {
-  const rawPort = getRequiredEnv("PORT");
+  const rawPort = process.env.PORT?.trim() || "5000";
   const port = Number(rawPort);
 
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
@@ -27,10 +56,15 @@ function getPort(): number {
 }
 
 export function getEnv(): AppEnv {
+  const { databaseUrl, mongoUri } = getDatabaseUrl();
+
   return {
     PORT: getPort(),
-    DATABASE_URL: getRequiredEnv("DATABASE_URL"),
+    DATABASE_URL: databaseUrl,
+    MONGO_URI: mongoUri,
     JWT_SECRET: getRequiredEnv("JWT_SECRET"),
     JWT_EXPIRES_IN: getRequiredEnv("JWT_EXPIRES_IN"),
+    FRONTEND_URL: getRequiredEnv("FRONTEND_URL"),
+    NODE_ENV: process.env.NODE_ENV ?? "development",
   };
 }
