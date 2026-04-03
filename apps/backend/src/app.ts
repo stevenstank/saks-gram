@@ -9,11 +9,18 @@ import { AppError } from "./utils/app-error";
 
 const app = express();
 const frontendUrl = process.env.FRONTEND_URL?.trim() || null;
+const defaultFrontendUrl = "https://saks-gram-frontend.vercel.app";
+
+const normalizeOrigin = (value: string) => value.replace(/\/+$/, "");
+
+const allowedOrigins = [frontendUrl, defaultFrontendUrl]
+  .filter((value): value is string => Boolean(value))
+  .map((value) => normalizeOrigin(value));
 
 app.set("trust proxy", 1);
 
 if (!frontendUrl) {
-  console.warn("FRONTEND_URL is not set. CORS requests will be denied.");
+  console.warn(`FRONTEND_URL is not set. Falling back to ${defaultFrontendUrl} for CORS.`);
 }
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -23,7 +30,21 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 app.use(
   cors({
-    origin: frontendUrl ?? false,
+    origin: (origin, callback) => {
+      // Allow non-browser requests (e.g. curl/Postman) with no Origin header.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = normalizeOrigin(origin);
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
     credentials: true,
   }),
 );
