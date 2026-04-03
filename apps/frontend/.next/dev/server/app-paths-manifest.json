@@ -1,3 +1,6 @@
 {
-  "/profile/[id]/page": "app/profile/[id]/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/profile/[id]/page": "app/profile/[id]/page.js",
+  "/feed/page": "app/feed/page.js"
 }

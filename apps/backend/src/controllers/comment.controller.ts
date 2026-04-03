@@ -52,7 +52,13 @@ export async function createComment(req: Request, res: Response, next: NextFunct
       throw new AppError("Unauthorized", 401);
     }
 
-    const parsed = createCommentSchema.safeParse(req.body);
+    const postIdFromParams = req.params.postId ?? req.params.id;
+    const postIdFromBody = (req.body as { postId?: unknown })?.postId;
+
+    const parsed = createCommentSchema.safeParse({
+      content: (req.body as { content?: unknown })?.content,
+      postId: postIdFromParams ?? postIdFromBody,
+    });
 
     if (!parsed.success) {
       const firstIssue = parsed.error.issues[0]?.message ?? "Invalid request";
@@ -110,7 +116,7 @@ export async function createComment(req: Request, res: Response, next: NextFunct
 
 export async function getCommentsByPost(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const postId = req.params.postId;
+    const postId = req.params.postId ?? req.params.id;
 
     if (typeof postId !== "string" || postId.trim() === "") {
       throw new AppError("postId is required", 400);

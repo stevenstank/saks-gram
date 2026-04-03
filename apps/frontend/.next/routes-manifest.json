@@ -67,6 +67,12 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/feed",
+      "regex": "^/feed(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/feed(?:/)?$"
+    },
+    {
       "page": "/login",
       "regex": "^/login(?:/)?$",
       "routeKeys": {},

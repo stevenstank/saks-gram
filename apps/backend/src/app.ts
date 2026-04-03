@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import express, { type Request, type Response, type NextFunction } from "express";
 
 import { globalErrorHandler } from "./middleware/error.middleware";
+import feedRouter from "./routes/feed.routes";
 import apiRouter from "./routes";
 import { AppError } from "./utils/app-error";
 
@@ -22,6 +23,7 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
+app.use("/feed", feedRouter);
 app.use("/api", apiRouter);
 
 app.use((_req: Request, _res: Response, next: NextFunction) => {

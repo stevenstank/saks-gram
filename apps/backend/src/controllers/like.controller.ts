@@ -92,3 +92,114 @@ export async function toggleLike(req: Request, res: Response, next: NextFunction
     next(error);
   }
 }
+
+export async function likePost(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+    const postId = req.params.id;
+
+    if (!userId) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    if (typeof postId !== "string" || postId.trim() === "") {
+      throw new AppError("Invalid postId", 400);
+    }
+
+    const normalizedPostId = postId.trim();
+
+    const post = await db.post.findUnique({
+      where: {
+        id: normalizedPostId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!post) {
+      throw new AppError("Post not found", 404);
+    }
+
+    const existingLike = await db.like.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId: normalizedPostId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existingLike) {
+      await db.like.create({
+        data: {
+          userId,
+          postId: normalizedPostId,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Post liked",
+      data: {
+        liked: true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function unlikePost(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+    const postId = req.params.id;
+
+    if (!userId) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    if (typeof postId !== "string" || postId.trim() === "") {
+      throw new AppError("Invalid postId", 400);
+    }
+
+    const normalizedPostId = postId.trim();
+
+    const existingLike = await db.like.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId: normalizedPostId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingLike) {
+      await db.like.delete({
+        where: {
+          userId_postId: {
+            userId,
+            postId: normalizedPostId,
+          },
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Post unliked",
+      data: {
+        liked: false,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
