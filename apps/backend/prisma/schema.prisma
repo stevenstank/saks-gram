@@ -22,6 +22,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   posts     Post[]
+  comments  Comment[]
   likes     Like[]
   followers Follow[] @relation("UserFollowers")
   following Follow[] @relation("UserFollowing")
@@ -39,11 +40,28 @@ model Post {
   updatedAt DateTime @updatedAt
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
   likes  Like[]
 
   @@index([authorId], map: "idx_posts_author_id")
   @@index([createdAt], map: "idx_posts_created_at")
   @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.VarChar(300)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String   @db.Uuid
+  postId    String   @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId], map: "idx_comments_post_id")
+  @@index([userId], map: "idx_comments_user_id")
+  @@map("comments")
 }
 
 model Like {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import authRouter from "./auth.routes";
+import commentRouter from "./comment.routes";
 import followRouter from "./follow.routes";
 import healthRouter from "./health.routes";
 import likeRouter from "./like.routes";
@@ -11,6 +12,7 @@ import userRouter from "./user.routes";
 const router = Router();
 
 router.use("/auth", authRouter);
+router.use("/comments", commentRouter);
 router.use("/follow", followRouter);
 router.use("/health", healthRouter);
 router.use("/likes", likeRouter);
