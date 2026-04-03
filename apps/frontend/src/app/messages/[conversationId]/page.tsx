@@ -11,7 +11,7 @@ import { useAuth } from "../../../hooks/use-auth";
 import { useRequireAuth } from "../../../hooks/use-require-auth";
 import { useToast } from "../../../hooks/use-toast";
 import { getConversations } from "../../../lib/conversations-api";
-import { getConversationMessages, sendTextMessage, type ConversationMessage } from "../../../lib/messages-api";
+import { deleteMessage, getConversationMessages, sendTextMessage, type ConversationMessage } from "../../../lib/messages-api";
 
 type ConversationPageProps = {
   params: Promise<{
@@ -40,6 +40,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [deletingMessageIds, setDeletingMessageIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [sendFeedback, setSendFeedback] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
@@ -247,6 +248,46 @@ export default function ConversationPage({ params }: ConversationPageProps) {
     }
   }
 
+  async function handleDeleteMessage(messageId: string): Promise<void> {
+    if (!user || deletingMessageIds.has(messageId)) {
+      return;
+    }
+
+    const existingMessage = messages.find((message) => message.id === messageId);
+
+    if (!existingMessage || existingMessage.senderId !== user.id) {
+      return;
+    }
+
+    setDeletingMessageIds((current) => new Set(current).add(messageId));
+    setMessages((current) => current.filter((message) => message.id !== messageId));
+
+    try {
+      await deleteMessage(messageId);
+    } catch (deleteError) {
+      setMessages((current) => {
+        const alreadyRestored = current.some((message) => message.id === messageId);
+
+        if (alreadyRestored) {
+          return current;
+        }
+
+        return [...current, existingMessage].sort(
+          (left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+        );
+      });
+
+      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete message";
+      showErrorToast(message);
+    } finally {
+      setDeletingMessageIds((current) => {
+        const next = new Set(current);
+        next.delete(messageId);
+        return next;
+      });
+    }
+  }
+
   if (isCheckingAuth) {
     return (
       <main className="w-full py-8">
@@ -319,7 +360,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
               <div className="space-y-3">
                 {messageRows.map((message) => (
                     <div key={message.id} className={message.isSender ? "flex justify-end" : "flex justify-start"}>
-                      <div className="max-w-[78%]">
+                      <div className="group relative max-w-[78%]">
                         {!message.isSender ? (
                         <p className="mb-1 px-1 text-xs text-gray-500">{message.sender.username}</p>
                       ) : null}
@@ -359,6 +400,23 @@ export default function ConversationPage({ params }: ConversationPageProps) {
                         <p className={message.isSender ? "mt-1 px-1 text-right text-xs text-gray-500" : "mt-1 px-1 text-xs text-gray-500"}>
                         {message.timestamp}
                       </p>
+
+                      {message.isSender && !message.id.startsWith("temp-") ? (
+                        <button
+                          type="button"
+                          aria-label="Delete message"
+                          onClick={() => void handleDeleteMessage(message.id)}
+                          disabled={deletingMessageIds.has(message.id)}
+                          className={[
+                            "absolute right-2 top-2 rounded p-1 text-[11px] text-black transition",
+                            "bg-black/10 opacity-50 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40",
+                            message.type === "TEXT" ? "" : "bg-black/20",
+                          ].join(" ")}
+                          title="Delete message"
+                        >
+                          {deletingMessageIds.has(message.id) ? "..." : "🗑️"}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 ))}

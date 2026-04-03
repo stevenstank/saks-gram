@@ -8,6 +8,11 @@ type ConversationParticipant = {
   id: string;
 };
 
+type ConversationLastMessageRecord = {
+  id: string;
+  lastMessageId: string | null;
+};
+
 type MessageRecord = {
   id: string;
   conversationId: string;
@@ -16,6 +21,12 @@ type MessageRecord = {
   text: string | null;
   postId: string | null;
   createdAt: Date;
+};
+
+type MessageOwnerRecord = {
+  id: string;
+  conversationId: string;
+  senderId: string;
 };
 
 type ConversationMessageRecord = {
@@ -46,6 +57,7 @@ type ConversationMessageRecord = {
 const db = prisma as unknown as {
   conversation: {
     findFirst(args: unknown): Promise<ConversationParticipant | null>;
+    findUnique(args: unknown): Promise<ConversationLastMessageRecord | null>;
     update(args: unknown): Promise<{ id: string; lastMessageId: string | null }>;
   };
   post: {
@@ -53,6 +65,8 @@ const db = prisma as unknown as {
   };
   message: {
     create(args: unknown): Promise<MessageRecord>;
+    findUnique(args: unknown): Promise<MessageOwnerRecord | null>;
+    delete(args: unknown): Promise<{ id: string }>;
     findMany(args: unknown): Promise<ConversationMessageRecord[]>;
     count(args: unknown): Promise<number>;
   };
@@ -303,6 +317,96 @@ export async function getConversationMessages(req: Request, res: Response, next:
           hasPreviousPage: page > 1,
         },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const currentUserId = req.user?.userId;
+
+    if (!currentUserId) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const messageId = req.params.id;
+
+    if (typeof messageId !== "string" || messageId.trim() === "") {
+      throw new AppError("messageId is required", 400);
+    }
+
+    const message = await db.message.findUnique({
+      where: {
+        id: messageId,
+      },
+      select: {
+        id: true,
+        conversationId: true,
+        senderId: true,
+      },
+    });
+
+    if (!message) {
+      throw new AppError("Message not found", 404);
+    }
+
+    if (message.senderId !== currentUserId) {
+      throw new AppError("Forbidden", 403);
+    }
+
+    await db.message.delete({
+      where: {
+        id: messageId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const conversation = await db.conversation.findUnique({
+      where: {
+        id: message.conversationId,
+      },
+      select: {
+        id: true,
+        lastMessageId: true,
+      },
+    });
+
+    if (conversation?.lastMessageId === messageId) {
+      const previousLatest = await db.message.findMany({
+        where: {
+          conversationId: message.conversationId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+        },
+      });
+
+      await db.conversation.update({
+        where: {
+          id: message.conversationId,
+        },
+        data: {
+          lastMessageId: previousLatest[0]?.id ?? null,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          lastMessageId: true,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Message deleted successfully",
     });
   } catch (error) {
     next(error);

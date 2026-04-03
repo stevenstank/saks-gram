@@ -11,7 +11,7 @@ export type HealthResponse = {
   message: string;
 };
 
-type RequestMethod = "GET" | "POST";
+type RequestMethod = "GET" | "POST" | "DELETE";
 
 type RequestOptions = {
   method?: RequestMethod;
@@ -68,6 +68,10 @@ export async function apiGet<T>(path: string): Promise<T> {
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return apiRequest<T>(path, { method: "POST", body });
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  return apiRequest<T>(path, { method: "DELETE" });
 }
 
 export async function getHealth(): Promise<HealthResponse> {

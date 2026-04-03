@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./api";
+import { apiDelete, apiGet, apiPost } from "./api";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -129,4 +129,21 @@ export async function sendPostMessage(
   }
 
   return response.data.message;
+}
+
+type DeleteMessageResponse = {
+  success: boolean;
+  message: string;
+};
+
+export async function deleteMessage(messageId: string): Promise<void> {
+  if (!messageId || messageId.trim() === "") {
+    throw new Error("Invalid messageId");
+  }
+
+  const response = await apiDelete<DeleteMessageResponse>(`/api/messages/${encodeURIComponent(messageId)}`);
+
+  if (!response.success) {
+    throw new Error("Failed to delete message");
+  }
 }
