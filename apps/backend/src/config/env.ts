@@ -4,7 +4,7 @@ type AppEnv = {
   MONGO_URI: string | null;
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
-  FRONTEND_URL: string;
+  FRONTEND_URL: string | null;
   NODE_ENV: string;
 };
 
@@ -64,7 +64,7 @@ export function getEnv(): AppEnv {
     MONGO_URI: mongoUri,
     JWT_SECRET: getRequiredEnv("JWT_SECRET"),
     JWT_EXPIRES_IN: getRequiredEnv("JWT_EXPIRES_IN"),
-    FRONTEND_URL: getRequiredEnv("FRONTEND_URL"),
+    FRONTEND_URL: getOptionalEnv("FRONTEND_URL"),
     NODE_ENV: process.env.NODE_ENV ?? "development",
   };
 }

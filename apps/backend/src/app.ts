@@ -2,16 +2,19 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import express, { type Request, type Response, type NextFunction } from "express";
 
-import { getEnv } from "./config/env";
 import { globalErrorHandler } from "./middleware/error.middleware";
 import feedRouter from "./routes/feed.routes";
 import apiRouter from "./routes";
 import { AppError } from "./utils/app-error";
 
 const app = express();
-const { FRONTEND_URL } = getEnv();
+const frontendUrl = process.env.FRONTEND_URL?.trim() || null;
 
 app.set("trust proxy", 1);
+
+if (!frontendUrl) {
+  console.warn("FRONTEND_URL is not set. CORS requests will be denied.");
+}
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
@@ -20,12 +23,20 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: frontendUrl ?? false,
     credentials: true,
   }),
 );
 app.use(cookieParser());
 app.use(express.json());
+
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).send("API is running");
+});
+
+app.get("/api/health", (_req: Request, res: Response) => {
+  res.status(200).send("OK");
+});
 
 app.use("/feed", feedRouter);
 app.use("/api", apiRouter);
