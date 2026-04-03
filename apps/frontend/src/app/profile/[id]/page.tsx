@@ -9,7 +9,7 @@ import { FollowButton } from "../../../components/follow-button";
 import { PostCard } from "../../../components/post-card";
 import { useAuth } from "../../../hooks/use-auth";
 import { getFollowers, getFollowing, getProfile } from "../../../lib/profile-api";
-import { createPost, getPostsByUser } from "../../../services/post";
+import { createPost, getPostsByUser, uploadPostImage } from "../../../services/post";
 import type { Post } from "../../../types/post";
 
 type ProfileUser = {
@@ -32,6 +32,8 @@ export default function PublicProfilePage() {
   const [isPostsLoading, setIsPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [postContent, setPostContent] = useState("");
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreviewUrl, setPostImagePreviewUrl] = useState<string | null>(null);
   const [createPostError, setCreatePostError] = useState<string | null>(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
 
@@ -95,13 +97,30 @@ export default function PublicProfilePage() {
       });
   }, [username]);
 
+  useEffect(() => {
+    if (!postImageFile) {
+      if (postImagePreviewUrl) {
+        URL.revokeObjectURL(postImagePreviewUrl);
+        setPostImagePreviewUrl(null);
+      }
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(postImageFile);
+    setPostImagePreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [postImageFile]);
+
   async function onCreatePost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmed = postContent.trim();
 
-    if (!trimmed) {
-      setCreatePostError("Content is required");
+    if (!trimmed && !postImageFile) {
+      setCreatePostError("Add text or an image to create a post");
       return;
     }
 
@@ -114,9 +133,20 @@ export default function PublicProfilePage() {
     setCreatePostError(null);
 
     try {
-      const createdPost = await createPost(trimmed);
+      let imageUrl: string | undefined;
+
+      if (postImageFile) {
+        imageUrl = await uploadPostImage(postImageFile);
+      }
+
+      const createdPost = await createPost({
+        content: trimmed,
+        imageUrl,
+      });
+
       setPosts((current) => [createdPost, ...current]);
       setPostContent("");
+      setPostImageFile(null);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Failed to create post";
       setCreatePostError(message);
@@ -202,6 +232,35 @@ export default function PublicProfilePage() {
               disabled={isCreatingPost}
             />
 
+            <div className="mt-2">
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setPostImageFile(file);
+                  if (createPostError) {
+                    setCreatePostError(null);
+                  }
+                }}
+                disabled={isCreatingPost}
+              />
+
+              {postImagePreviewUrl ? (
+                <div className="mt-2">
+                  <img src={postImagePreviewUrl} alt="Post preview" className="max-h-64 rounded border border-slate-300" />
+                  <button
+                    type="button"
+                    className="mt-2 rounded border border-slate-300 px-2 py-1 text-xs"
+                    onClick={() => setPostImageFile(null)}
+                    disabled={isCreatingPost}
+                  >
+                    Remove image
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
             <p className="mt-1 text-xs text-slate-500">{remainingChars} characters left</p>
 
             <button
@@ -229,7 +288,13 @@ export default function PublicProfilePage() {
 
           <div className="mt-3 space-y-3">
             {posts.map((post) => (
-              <PostCard key={post.id} content={post.content} author={post.author} createdAt={post.createdAt} />
+              <PostCard
+                key={post.id}
+                content={post.content}
+                author={post.author}
+                createdAt={post.createdAt}
+                imageUrl={post.imageUrl}
+              />
             ))}
           </div>
         </div>

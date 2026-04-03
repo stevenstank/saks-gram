@@ -1,5 +1,6 @@
 import { type NextFunction, type Request, type Response } from "express";
 import { Prisma } from "@prisma/client";
+import multer from "multer";
 
 import { AppError } from "../utils/app-error";
 
@@ -51,6 +52,15 @@ export function globalErrorHandler(
     res.status(400).json({
       success: false,
       message: "Invalid database query input",
+      statusCode: 400,
+    });
+    return;
+  }
+
+  if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+    res.status(400).json({
+      success: false,
+      message: "Image file is too large (max 5MB)",
       statusCode: 400,
     });
     return;

@@ -6,6 +6,7 @@ import { AppError } from "../utils/app-error";
 type PostWithAuthorRecord = {
   id: string;
   content: string;
+  imageUrl: string | null;
   createdAt: Date;
   author: {
     id: string;
@@ -32,16 +33,24 @@ export async function createPost(req: Request, res: Response, next: NextFunction
       throw new AppError("Unauthorized", 401);
     }
 
-    const contentInput = (req.body as { content?: unknown }).content;
+    const payload = req.body as {
+      content?: unknown;
+      imageUrl?: unknown;
+    };
 
-    if (typeof contentInput !== "string") {
-      throw new AppError("Content is required", 400);
+    if (payload.content !== undefined && typeof payload.content !== "string") {
+      throw new AppError("Content must be a string", 400);
     }
 
-    const content = contentInput.trim();
+    if (payload.imageUrl !== undefined && typeof payload.imageUrl !== "string") {
+      throw new AppError("imageUrl must be a string", 400);
+    }
 
-    if (!content) {
-      throw new AppError("Content is required", 400);
+    const content = (payload.content ?? "").trim();
+    const imageUrl = (payload.imageUrl ?? "").trim();
+
+    if (!content && !imageUrl) {
+      throw new AppError("At least content or imageUrl is required", 400);
     }
 
     if (content.length > 500) {
@@ -51,11 +60,13 @@ export async function createPost(req: Request, res: Response, next: NextFunction
     const post = await db.post.create({
       data: {
         content,
+        imageUrl: imageUrl || null,
         authorId: userId,
       },
       select: {
         id: true,
         content: true,
+        imageUrl: true,
         createdAt: true,
         author: {
           select: {
@@ -88,6 +99,7 @@ export async function getAllPosts(req: Request, res: Response, next: NextFunctio
       select: {
         id: true,
         content: true,
+        imageUrl: true,
         createdAt: true,
         author: {
           select: {
@@ -144,6 +156,7 @@ export async function getPostsByUsername(req: Request, res: Response, next: Next
       select: {
         id: true,
         content: true,
+        imageUrl: true,
         createdAt: true,
         author: {
           select: {

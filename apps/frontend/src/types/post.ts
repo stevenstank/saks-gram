@@ -7,10 +7,9 @@ export type PostAuthor = {
 export type Post = {
   id: string;
   content: string;
-  authorId: string;
+  imageUrl?: string;
   createdAt: string;
-  updatedAt: string;
-  author: PostAuthor;
+  author?: PostAuthor;
 };
 
 export type PostsResponse = {

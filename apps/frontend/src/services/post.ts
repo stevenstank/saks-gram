@@ -81,7 +81,12 @@ export async function getPostsByUser(username: string): Promise<Post[]> {
   return (body as PostsResponse).data.posts;
 }
 
-export async function createPost(content: string): Promise<Post> {
+type CreatePostInput = {
+  content?: string;
+  imageUrl?: string;
+};
+
+export async function createPost(input: CreatePostInput): Promise<Post> {
   const token = getTokenFromStorage();
 
   if (!token) {
@@ -94,7 +99,7 @@ export async function createPost(content: string): Promise<Post> {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(input),
     cache: "no-store",
   });
 
@@ -105,4 +110,41 @@ export async function createPost(content: string): Promise<Post> {
   }
 
   return (body as CreatePostResponse).data.post;
+}
+
+export async function uploadPostImage(file: File): Promise<string> {
+  const token = getTokenFromStorage();
+
+  if (!token) {
+    throw new Error("Missing authentication token");
+  }
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const response = await fetch(`${getApiBaseUrl()}/api/upload/post`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+    cache: "no-store",
+  });
+
+  const body = await parseJson(response);
+
+  if (!response.ok) {
+    throw new Error(parseErrorMessage(response.status, body));
+  }
+
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("imageUrl" in body) ||
+    typeof (body as { imageUrl?: unknown }).imageUrl !== "string"
+  ) {
+    throw new Error("Upload response is invalid");
+  }
+
+  return (body as { imageUrl: string }).imageUrl;
 }
