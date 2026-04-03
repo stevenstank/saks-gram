@@ -8,6 +8,10 @@ type PostWithAuthorRecord = {
   content: string;
   imageUrl: string | null;
   createdAt: Date;
+  likes?: Array<{ id: string }>;
+  _count?: {
+    likes: number;
+  };
   author: {
     id: string;
     username: string;
@@ -92,15 +96,26 @@ export async function createPost(req: Request, res: Response, next: NextFunction
 
 export async function getAllPosts(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const userId = req.user?.userId ?? "";
+
     const posts = await db.post.findMany({
       orderBy: {
         createdAt: "desc",
       },
-      select: {
-        id: true,
-        content: true,
-        imageUrl: true,
-        createdAt: true,
+      include: {
+        likes: {
+          where: {
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
         author: {
           select: {
             id: true,
@@ -111,10 +126,20 @@ export async function getAllPosts(req: Request, res: Response, next: NextFunctio
       },
     });
 
+    const postsWithLikesCount = posts.map((post) => ({
+      id: post.id,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      author: post.author,
+      isLiked: (post.likes?.length ?? 0) > 0,
+      likesCount: post._count?.likes ?? 0,
+    }));
+
     res.status(200).json({
       success: true,
       data: {
-        posts,
+        posts: postsWithLikesCount,
       },
     });
   } catch (error) {
@@ -124,6 +149,7 @@ export async function getAllPosts(req: Request, res: Response, next: NextFunctio
 
 export async function getPostsByUsername(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const userId = req.user?.userId ?? "";
     const usernameParam = req.params.username;
 
     if (typeof usernameParam !== "string" || usernameParam.trim() === "") {
@@ -153,11 +179,20 @@ export async function getPostsByUsername(req: Request, res: Response, next: Next
       orderBy: {
         createdAt: "desc",
       },
-      select: {
-        id: true,
-        content: true,
-        imageUrl: true,
-        createdAt: true,
+      include: {
+        likes: {
+          where: {
+            userId,
+          },
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
         author: {
           select: {
             id: true,
@@ -168,10 +203,20 @@ export async function getPostsByUsername(req: Request, res: Response, next: Next
       },
     });
 
+    const postsWithLikesCount = posts.map((post) => ({
+      id: post.id,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      author: post.author,
+      isLiked: (post.likes?.length ?? 0) > 0,
+      likesCount: post._count?.likes ?? 0,
+    }));
+
     res.status(200).json({
       success: true,
       data: {
-        posts,
+        posts: postsWithLikesCount,
       },
     });
   } catch (error) {

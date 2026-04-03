@@ -41,6 +41,7 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
+      credentials: "include",
       cache: "no-store",
     });
   } catch {

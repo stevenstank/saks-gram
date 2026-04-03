@@ -46,10 +46,13 @@ export default function PostsPage() {
         {posts.map((post) => (
           <PostCard
             key={post.id}
+            postId={post.id}
             content={post.content}
             author={post.author}
             createdAt={post.createdAt}
             imageUrl={post.imageUrl}
+            isLiked={post.isLiked}
+            likesCount={post.likesCount}
           />
         ))}
       </section>

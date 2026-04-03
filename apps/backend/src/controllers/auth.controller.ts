@@ -25,6 +25,15 @@ const db = prisma as unknown as {
   };
 };
 
+const AUTH_COOKIE_NAME = "saksgram.token";
+
+const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: false,
+  path: "/",
+};
+
 export async function register(
   req: Request,
   res: Response,
@@ -71,6 +80,8 @@ export async function register(
       email: user.email,
     });
 
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -113,6 +124,8 @@ export async function login(
       username: user.username,
       email: user.email,
     });
+
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
 
     res.status(200).json({
       success: true,

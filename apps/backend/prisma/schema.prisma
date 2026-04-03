@@ -22,6 +22,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   posts     Post[]
+  likes     Like[]
   followers Follow[] @relation("UserFollowers")
   following Follow[] @relation("UserFollowing")
 
@@ -38,10 +39,26 @@ model Post {
   updatedAt DateTime @updatedAt
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes  Like[]
 
   @@index([authorId], map: "idx_posts_author_id")
   @@index([createdAt], map: "idx_posts_created_at")
   @@map("posts")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  postId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId], map: "uq_likes_user_post")
+  @@index([userId], map: "idx_likes_user_id")
+  @@index([postId], map: "idx_likes_post_id")
+  @@map("likes")
 }
 
 model Follow {

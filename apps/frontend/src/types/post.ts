@@ -10,6 +10,8 @@ export type Post = {
   imageUrl?: string;
   createdAt: string;
   author?: PostAuthor;
+  isLiked?: boolean;
+  likesCount?: number;
 };
 
 export type PostsResponse = {
