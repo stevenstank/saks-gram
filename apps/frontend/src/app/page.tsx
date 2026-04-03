@@ -64,6 +64,18 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <footer className="mt-12 pb-4 text-center text-xs text-gray-500">
+        Made with ❤️ by{" "}
+        <a
+          href="https://github.com/stevenstank"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 transition hover:text-gray-300"
+        >
+          stevenstank
+        </a>
+      </footer>
     </main>
   );
 }

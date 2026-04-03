@@ -1,5 +1,4 @@
 {
-  "/messages/[conversationId]/page": "app/messages/[conversationId]/page.js",
-  "/feed/page": "app/feed/page.js",
-  "/messages/page": "app/messages/page.js"
+  "/page": "app/page.js",
+  "/profile/[id]/page": "app/profile/[id]/page.js"
 }
