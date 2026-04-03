@@ -363,9 +363,9 @@ export default function FeedPage() {
           <Link href="/feed" className="text-white px-3 py-2 rounded-md hover:bg-gray-900 cursor-pointer">
             Feed
           </Link>
-          <button type="button" className="text-white px-3 py-2 rounded-md hover:bg-gray-900 cursor-pointer text-left">
+          <Link href="/messages" className="text-white px-3 py-2 rounded-md hover:bg-gray-900 cursor-pointer text-left">
             Messages
-          </button>
+          </Link>
           <button
             type="button"
             onClick={() => setIsCreatePostOpen(true)}

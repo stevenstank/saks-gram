@@ -23,6 +23,22 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/messages/[conversationId]",
+      "regex": "^/messages/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPconversationId": "nxtPconversationId"
+      },
+      "namedRegex": "^/messages/(?<nxtPconversationId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/posts/[postId]",
+      "regex": "^/posts/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPpostId": "nxtPpostId"
+      },
+      "namedRegex": "^/posts/(?<nxtPpostId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/profile/[id]",
       "regex": "^/profile/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -77,6 +93,12 @@
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/messages",
+      "regex": "^/messages(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/messages(?:/)?$"
     },
     {
       "page": "/posts",

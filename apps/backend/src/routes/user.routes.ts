@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { getFollowersByUserId, getFollowingByUserId } from "../controllers/follow.controller";
+import { getFollowersByUserId, getFollowingByUserId, getMyFollowing } from "../controllers/follow.controller";
 import { getCurrentUser, getUserById, getUsers, updateUser, uploadAvatar } from "../controllers/user.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { uploadAvatarFile } from "../middleware/upload.middleware";
@@ -11,6 +11,7 @@ const userRouter = Router();
 
 userRouter.get("/me", authenticate, getCurrentUser);
 userRouter.get("/", authenticate, getUsers);
+userRouter.get("/following", authenticate, getMyFollowing);
 userRouter.get("/:userId/followers", getFollowersByUserId);
 userRouter.get("/:userId/following", getFollowingByUserId);
 userRouter.get("/:id", getUserById);

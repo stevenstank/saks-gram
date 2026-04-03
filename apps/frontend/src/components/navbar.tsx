@@ -32,6 +32,9 @@ export function Navbar() {
             <Link href="/feed" className={linkClasses(pathname === "/feed")}>
               Feed
             </Link>
+            <Link href="/messages" className={linkClasses(pathname.startsWith("/messages"))}>
+              Messages
+            </Link>
             <Link href={profileHref} className={linkClasses(pathname.startsWith("/profile"))}>
               Profile
             </Link>

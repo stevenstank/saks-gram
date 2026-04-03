@@ -97,6 +97,11 @@ export async function getPostsByUser(username: string): Promise<Post[]> {
   return (body as PostsResponse).data.posts;
 }
 
+export async function getPostById(postId: string): Promise<Post | null> {
+  const posts = await getAllPosts();
+  return posts.find((post) => post.id === postId) ?? null;
+}
+
 type CreatePostInput = {
   content?: string;
   imageUrl?: string;

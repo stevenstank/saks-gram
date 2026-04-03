@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import type { PostAuthor } from "../types/post";
@@ -7,6 +10,7 @@ import { LikeButton } from "../../components/LikeButton";
 import { Avatar } from "./ui/avatar";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
+import { SharePostModal } from "./share-post-modal";
 
 type PostCardProps = {
   postId: string;
@@ -22,6 +26,7 @@ export function PostCard({ postId, content, author, createdAt, imageUrl, isLiked
   const formattedDate = new Date(createdAt).toLocaleString();
   const username = author?.username || "Unknown";
   const profileHref = username !== "Unknown" ? `/profile/${encodeURIComponent(username)}` : "/profile";
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   return (
     <Card className="space-y-4 border-gray-800 bg-[#111111] p-4 shadow-md">
@@ -50,8 +55,15 @@ export function PostCard({ postId, content, author, createdAt, imageUrl, isLiked
         <Button type="button" variant="ghost" className="text-gray-300">
           💬 Comment
         </Button>
-        <Button type="button" variant="ghost" className="text-gray-300">
-          ↗ Share
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label="Share post"
+          title="Share"
+          onClick={() => setIsShareModalOpen(true)}
+          className="h-10 w-10 rounded-full px-0 text-gray-300"
+        >
+          ↗
         </Button>
         <Link href={profileHref}>
           <Button type="button" variant="ghost" className="text-gray-300">
@@ -64,6 +76,8 @@ export function PostCard({ postId, content, author, createdAt, imageUrl, isLiked
         <CommentInput postId={postId} />
         <CommentList postId={postId} />
       </div>
+
+      <SharePostModal isOpen={isShareModalOpen} postId={postId} onClose={() => setIsShareModalOpen(false)} />
     </Card>
   );
 }

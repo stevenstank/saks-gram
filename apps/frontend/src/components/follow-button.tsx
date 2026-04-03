@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 
 import { useAuth } from "../hooks/use-auth";
 import { useToast } from "../hooks/use-toast";
+import { startConversation } from "../lib/conversations-api";
 import { followUser, getFollowStatus, unfollowUser } from "../lib/profile-api";
 import { Button } from "./ui/button";
 
@@ -23,6 +25,7 @@ function getStatusKey(targetUserId: string, token: string | null): string | null
 }
 
 export function FollowButton({ targetUserId, targetUsername, compact = false }: FollowButtonProps) {
+  const router = useRouter();
   const { user, token, isAuthenticated, isBootstrapping } = useAuth();
   const { showErrorToast, showSuccessToast } = useToast();
   const { mutate } = useSWRConfig();
@@ -118,8 +121,19 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
     };
   }, [isMenuOpen]);
 
-  function onMessageClick(): void {
-    showSuccessToast("Messaging will be available soon");
+  async function onMessageClick(): Promise<void> {
+    if (!token || isMutating) {
+      return;
+    }
+
+    try {
+      const conversationId = await startConversation(token, targetUserId);
+      router.push(`/messages/${encodeURIComponent(conversationId)}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to open message";
+      showErrorToast(message);
+    }
+
     setIsMenuOpen(false);
   }
 
@@ -188,7 +202,9 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
           <Button
             type="button"
             variant="primary"
-            onClick={onMessageClick}
+            onClick={() => {
+              void onMessageClick();
+            }}
             disabled={isLoading || isMutating}
           >
             Message
@@ -209,7 +225,9 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
               <button
                 type="button"
                 className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-white transition hover:bg-gray-800"
-                onClick={onMessageClick}
+                onClick={() => {
+                  void onMessageClick();
+                }}
               >
                 Message
               </button>

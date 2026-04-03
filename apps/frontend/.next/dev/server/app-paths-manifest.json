@@ -1,7 +1,5 @@
 {
+  "/messages/[conversationId]/page": "app/messages/[conversationId]/page.js",
   "/feed/page": "app/feed/page.js",
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/profile/[id]/page": "app/profile/[id]/page.js",
-  "/signup/page": "app/signup/page.js"
+  "/messages/page": "app/messages/page.js"
 }

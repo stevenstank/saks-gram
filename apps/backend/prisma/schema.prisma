@@ -12,6 +12,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MessageType {
+  TEXT
+  POST
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   username  String   @unique @db.VarChar(50)
@@ -24,6 +29,7 @@ model User {
   posts     Post[]
   comments  Comment[]
   likes     Like[]
+  messages  Message[]
   followers Follow[] @relation("UserFollowers")
   following Follow[] @relation("UserFollowing")
 
@@ -41,7 +47,8 @@ model Post {
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments Comment[]
-  likes  Like[]
+  likes    Like[]
+  messages Message[]
 
   @@index([authorId], map: "idx_posts_author_id")
   @@index([createdAt], map: "idx_posts_created_at")
@@ -92,4 +99,37 @@ model Follow {
   @@index([followerId], map: "idx_follows_follower_id")
   @@index([followingId], map: "idx_follows_following_id")
   @@map("follows")
+}
+
+model Conversation {
+  id              String   @id @default(uuid()) @db.Uuid
+  participants    String[] @db.Uuid
+  participantsKey String   @unique @db.VarChar(255)
+  lastMessageId   String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  messages        Message[]
+
+  @@index([updatedAt], map: "idx_conversations_updated_at")
+  @@index([participants], type: Gin, map: "idx_conversations_participants_gin")
+  @@map("conversations")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String      @db.Uuid
+  senderId       String      @db.Uuid
+  type           MessageType
+  text           String?     @db.VarChar(2000)
+  postId         String?     @db.Uuid
+  createdAt      DateTime    @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  post         Post?        @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt], map: "idx_messages_conversation_created_at")
+  @@index([senderId], map: "idx_messages_sender_id")
+  @@index([postId], map: "idx_messages_post_id")
+  @@map("messages")
 }

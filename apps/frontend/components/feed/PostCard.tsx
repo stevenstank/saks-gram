@@ -7,6 +7,7 @@ import { Avatar } from "../../src/components/ui/avatar";
 import { Button } from "../../src/components/ui/button";
 import { Card } from "../../src/components/ui/card";
 import { InputField } from "../../src/components/ui/input-field";
+import { SharePostModal } from "../../src/components/share-post-modal";
 import { useToast } from "../../src/hooks/use-toast";
 
 type FeedPost = {
@@ -67,6 +68,7 @@ export function PostCard({ post }: PostCardProps) {
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const commentInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -366,8 +368,15 @@ export function PostCard({ post }: PostCardProps) {
           <span className="text-gray-400">{commentsCount}</span>
         </div>
 
-        <Button type="button" variant="ghost" className="text-gray-300">
-          ↗ Share
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label="Share post"
+          title="Share"
+          onClick={() => setIsShareModalOpen(true)}
+          className="h-10 w-10 rounded-full px-0 text-gray-300"
+        >
+          ↗
         </Button>
 
         <Link href={username !== "Unknown" ? `/profile/${encodeURIComponent(username)}` : "/profile"}>
@@ -433,6 +442,8 @@ export function PostCard({ post }: PostCardProps) {
           {error}
         </p>
       ) : null}
+
+      <SharePostModal isOpen={isShareModalOpen} postId={post.id} onClose={() => setIsShareModalOpen(false)} />
     </Card>
   );
 }

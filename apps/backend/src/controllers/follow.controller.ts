@@ -285,3 +285,42 @@ export async function getFollowingByUserId(req: Request, res: Response, next: Ne
     next(error);
   }
 }
+
+export async function getMyFollowing(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const currentUserId = req.user?.userId;
+
+    if (!currentUserId) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const followRows = (await db.follow.findMany({
+      where: {
+        followerId: currentUserId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        following: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+    })) as Array<{ following: BasicProfile }>;
+
+    const following = followRows.map((row) => row.following);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        following,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
