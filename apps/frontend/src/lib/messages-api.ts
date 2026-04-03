@@ -67,7 +67,6 @@ type SendMessageResponse = {
 };
 
 export async function getConversationMessages(
-  token: string,
   conversationId: string,
   page = 1,
   limit = 40,
@@ -76,7 +75,6 @@ export async function getConversationMessages(
 
   const response = await apiGet<GetConversationMessagesResponse>(
     `/api/messages/conversation/${encodeURIComponent(conversationId)}?page=${page}&limit=${limit}`,
-    token,
   );
 
   if (!response.success || !response.data || !Array.isArray(response.data.messages)) {
@@ -90,7 +88,6 @@ export async function getConversationMessages(
 }
 
 export async function sendTextMessage(
-  token: string,
   conversationId: string,
   text: string,
 ): Promise<SendMessageResponse["data"]["message"]> {
@@ -103,7 +100,6 @@ export async function sendTextMessage(
       type: "TEXT",
       text,
     },
-    token,
   );
 
   if (!response.success || !response.data?.message) {
@@ -114,7 +110,6 @@ export async function sendTextMessage(
 }
 
 export async function sendPostMessage(
-  token: string,
   conversationId: string,
   postId: string,
 ): Promise<SendMessageResponse["data"]["message"]> {
@@ -127,7 +122,6 @@ export async function sendPostMessage(
       type: "POST",
       postId,
     },
-    token,
   );
 
   if (!response.success || !response.data?.message) {

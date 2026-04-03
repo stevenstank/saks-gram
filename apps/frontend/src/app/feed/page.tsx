@@ -13,6 +13,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { useAuth } from "../../hooks/use-auth";
 import { useRequireAuth } from "../../hooks/use-require-auth";
 import { useToast } from "../../hooks/use-toast";
+import API_URL from "../../lib/api-config";
 import { getAllUsers, type DiscoverUser } from "../../lib/profile-api";
 
 type FeedPost = {
@@ -88,27 +89,9 @@ function isEmptyFeedResponse(value: unknown): value is EmptyFeedResponse {
   return "message" in value && typeof value.message === "string";
 }
 
-function getApiBaseUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!baseUrl || baseUrl.trim() === "") {
-    throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
-  }
-
-  return baseUrl.replace(/\/$/, "");
-}
-
-function getTokenFromStorage(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("saksgram.auth.token");
-}
-
 export default function FeedPage() {
   const { isCheckingAuth } = useRequireAuth();
-  const { user, token, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { showErrorToast } = useToast();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [users, setUsers] = useState<DiscoverUser[]>([]);
@@ -142,13 +125,10 @@ export default function FeedPage() {
     setError(null);
 
     try {
-      const token = getTokenFromStorage();
-
-      const response = await fetch(`${getApiBaseUrl()}/feed?page=${targetPage}&limit=10`, {
+      const response = await fetch(`${API_URL}/feed?page=${targetPage}&limit=10`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
         cache: "no-store",
@@ -221,15 +201,9 @@ export default function FeedPage() {
   }, [fetchPage]);
 
   useEffect(() => {
-    if (!token) {
-      setUsers([]);
-      setIsUsersLoading(false);
-      return;
-    }
-
     setIsUsersLoading(true);
 
-    getAllUsers(token)
+    getAllUsers()
       .then((allUsers) => {
         setUsers(allUsers);
       })
@@ -241,7 +215,7 @@ export default function FeedPage() {
       .finally(() => {
         setIsUsersLoading(false);
       });
-  }, [showErrorToast, token]);
+  }, [showErrorToast]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -306,6 +280,10 @@ export default function FeedPage() {
           </aside>
 
           <section className="space-y-6">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent" />
+              Loading posts...
+            </div>
             {[1, 2, 3].map((item) => (
               <Card key={item} className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -389,7 +367,7 @@ export default function FeedPage() {
         </nav>
       </aside>
 
-      <div className="ml-[220px] mr-[260px] pt-20 px-6">
+      <div className="px-4 pt-20 lg:ml-[220px] lg:mr-[260px] lg:px-6">
         <section className="mx-auto w-full max-w-[600px] space-y-6">
           <h1 className="text-xl font-semibold text-white">Feed</h1>
           {feedType === "SUGGESTIONS" ? (

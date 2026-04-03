@@ -1,4 +1,5 @@
 import type { CreatePostResponse, Post, PostsResponse } from "../types/post";
+import API_URL from "../lib/api-config";
 
 type ToggleLikeResponse = {
   success: boolean;
@@ -7,24 +8,6 @@ type ToggleLikeResponse = {
     liked: boolean;
   };
 };
-
-function getApiBaseUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!baseUrl || baseUrl.trim() === "") {
-    throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
-  }
-
-  return baseUrl.replace(/\/$/, "");
-}
-
-function getTokenFromStorage(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("saksgram.auth.token");
-}
 
 async function parseJson(response: Response): Promise<unknown> {
   const text = await response.text();
@@ -54,13 +37,10 @@ function parseErrorMessage(status: number, body: unknown): string {
 }
 
 export async function getAllPosts(): Promise<Post[]> {
-  const token = getTokenFromStorage();
-
-  const response = await fetch(`${getApiBaseUrl()}/api/posts`, {
+  const response = await fetch(`${API_URL}/api/posts`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     credentials: "include",
     cache: "no-store",
@@ -76,13 +56,10 @@ export async function getAllPosts(): Promise<Post[]> {
 }
 
 export async function getPostsByUser(username: string): Promise<Post[]> {
-  const token = getTokenFromStorage();
-
-  const response = await fetch(`${getApiBaseUrl()}/api/posts/user/${encodeURIComponent(username)}`, {
+  const response = await fetch(`${API_URL}/api/posts/user/${encodeURIComponent(username)}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     credentials: "include",
     cache: "no-store",
@@ -108,17 +85,10 @@ type CreatePostInput = {
 };
 
 export async function createPost(input: CreatePostInput): Promise<Post> {
-  const token = getTokenFromStorage();
-
-  if (!token) {
-    throw new Error("Missing authentication token");
-  }
-
-  const response = await fetch(`${getApiBaseUrl()}/api/posts`, {
+  const response = await fetch(`${API_URL}/api/posts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(input),
     credentials: "include",
@@ -135,20 +105,11 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
 }
 
 export async function uploadPostImage(file: File): Promise<string> {
-  const token = getTokenFromStorage();
-
-  if (!token) {
-    throw new Error("Missing authentication token");
-  }
-
   const formData = new FormData();
   formData.append("image", file);
 
-  const response = await fetch(`${getApiBaseUrl()}/api/upload/post`, {
+  const response = await fetch(`${API_URL}/api/upload/post`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     body: formData,
     credentials: "include",
     cache: "no-store",
@@ -173,13 +134,10 @@ export async function uploadPostImage(file: File): Promise<string> {
 }
 
 export async function togglePostLike(postId: string): Promise<ToggleLikeResponse> {
-  const token = getTokenFromStorage();
-
-  const response = await fetch(`${getApiBaseUrl()}/api/likes/${encodeURIComponent(postId)}`, {
+  const response = await fetch(`${API_URL}/api/likes/${encodeURIComponent(postId)}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     credentials: "include",
     cache: "no-store",

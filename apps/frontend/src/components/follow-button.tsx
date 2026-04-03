@@ -16,17 +16,17 @@ type FollowButtonProps = {
   compact?: boolean;
 };
 
-function getStatusKey(targetUserId: string, token: string | null): string | null {
-  if (!targetUserId || !token) {
+function getStatusKey(targetUserId: string, currentUserId: string | null): string | null {
+  if (!targetUserId || !currentUserId) {
     return null;
   }
 
-  return `follow-status:${targetUserId}:${token}`;
+  return `follow-status:${targetUserId}:${currentUserId}`;
 }
 
 export function FollowButton({ targetUserId, targetUsername, compact = false }: FollowButtonProps) {
   const router = useRouter();
-  const { user, token, isAuthenticated, isBootstrapping } = useAuth();
+  const { user, isAuthenticated, isBootstrapping } = useAuth();
   const { showErrorToast, showSuccessToast } = useToast();
   const { mutate } = useSWRConfig();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -36,16 +36,16 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
   const currentUserId = user?.id ?? null;
 
   const isOwnProfile = useMemo(() => currentUserId === targetUserId, [targetUserId, currentUserId]);
-  const statusKey = getStatusKey(targetUserId, token);
+  const statusKey = getStatusKey(targetUserId, currentUserId);
 
   const { data: isFollowing, isLoading } = useSWR(
     statusKey,
     async () => {
-      if (!token) {
+      if (!currentUserId) {
         return false;
       }
 
-      return getFollowStatus(targetUserId, token);
+      return getFollowStatus(targetUserId);
     },
     {
       revalidateOnFocus: true,
@@ -60,7 +60,7 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
   const isCurrentlyFollowing = Boolean(isFollowing);
 
   async function onToggleFollow(nextFollowingState: boolean) {
-    if (!token || isMutating || !statusKey || !currentUserId) {
+    if (isMutating || !statusKey || !currentUserId) {
       return;
     }
 
@@ -73,9 +73,9 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
 
     try {
       if (nextFollowingState) {
-        await followUser(targetUserId, token);
+        await followUser(targetUserId);
       } else {
-        await unfollowUser(targetUserId, token);
+        await unfollowUser(targetUserId);
       }
 
       await Promise.all([
@@ -122,12 +122,12 @@ export function FollowButton({ targetUserId, targetUsername, compact = false }: 
   }, [isMenuOpen]);
 
   async function onMessageClick(): Promise<void> {
-    if (!token || isMutating) {
+    if (isMutating) {
       return;
     }
 
     try {
-      const conversationId = await startConversation(token, targetUserId);
+      const conversationId = await startConversation(targetUserId);
       router.push(`/messages/${encodeURIComponent(conversationId)}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to open message";

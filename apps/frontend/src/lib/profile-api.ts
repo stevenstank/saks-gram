@@ -1,4 +1,5 @@
 import type { AuthUser } from "../types/auth";
+import API_URL from "./api-config";
 
 type ApiSuccess<T> = {
   success: true;
@@ -19,24 +20,6 @@ type UpdateProfileInput = {
   bio?: string | null;
   avatar?: string | null;
 };
-
-function getApiBaseUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!baseUrl || baseUrl.trim() === "") {
-    throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
-  }
-
-  return baseUrl.replace(/\/$/, "");
-}
-
-function getTokenFromStorage(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("saksgram.auth.token");
-}
 
 function parseErrorMessage(status: number, body: unknown): string {
   if (
@@ -65,27 +48,13 @@ async function parseJson(response: Response): Promise<unknown> {
   }
 }
 
-function getAuthHeader(token?: string): Record<string, string> {
-  const resolvedToken = token ?? getTokenFromStorage();
-
-  if (!resolvedToken) {
-    throw new Error("Missing authentication token");
-  }
-
-  return {
-    Authorization: `Bearer ${resolvedToken}`,
-  };
-}
-
 export async function getProfile(id: string): Promise<ProfileUser> {
-  const maybeToken = getTokenFromStorage();
-
-  const response = await fetch(`${getApiBaseUrl()}/api/users/${id}`, {
+  const response = await fetch(`${API_URL}/api/users/${id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(maybeToken ? { Authorization: `Bearer ${maybeToken}` } : {}),
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -98,13 +67,13 @@ export async function getProfile(id: string): Promise<ProfileUser> {
   return (body as ApiSuccess<{ user: ProfileUser }>).data.user;
 }
 
-export async function getCurrentUser(token?: string): Promise<ProfileUser> {
-  const response = await fetch(`${getApiBaseUrl()}/api/users/me`, {
+export async function getCurrentUser(): Promise<ProfileUser> {
+  const response = await fetch(`${API_URL}/api/users/me`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -117,14 +86,14 @@ export async function getCurrentUser(token?: string): Promise<ProfileUser> {
   return (body as ApiSuccess<{ user: ProfileUser }>).data.user;
 }
 
-export async function updateProfile(data: UpdateProfileInput, token?: string): Promise<ProfileUser> {
-  const response = await fetch(`${getApiBaseUrl()}/api/users/update`, {
+export async function updateProfile(data: UpdateProfileInput): Promise<ProfileUser> {
+  const response = await fetch(`${API_URL}/api/users/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
     body: JSON.stringify(data),
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -137,16 +106,14 @@ export async function updateProfile(data: UpdateProfileInput, token?: string): P
   return (body as ApiSuccess<{ user: ProfileUser }>).data.user;
 }
 
-export async function uploadAvatar(file: File, token?: string): Promise<string> {
+export async function uploadAvatar(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("avatar", file);
 
-  const response = await fetch(`${getApiBaseUrl()}/api/users/upload-avatar`, {
+  const response = await fetch(`${API_URL}/api/users/upload-avatar`, {
     method: "POST",
-    headers: {
-      ...getAuthHeader(token),
-    },
     body: formData,
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -159,13 +126,13 @@ export async function uploadAvatar(file: File, token?: string): Promise<string> 
   return (body as ApiSuccess<{ imageUrl: string }>).data.imageUrl;
 }
 
-export async function getFollowStatus(userId: string, token?: string): Promise<boolean> {
-  const response = await fetch(`${getApiBaseUrl()}/api/follow/status/${userId}`, {
+export async function getFollowStatus(userId: string): Promise<boolean> {
+  const response = await fetch(`${API_URL}/api/follow/status/${userId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -178,13 +145,13 @@ export async function getFollowStatus(userId: string, token?: string): Promise<b
   return (body as ApiSuccess<{ isFollowing: boolean }>).data.isFollowing;
 }
 
-export async function followUser(userId: string, token?: string): Promise<void> {
-  const response = await fetch(`${getApiBaseUrl()}/api/follow/${userId}`, {
+export async function followUser(userId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/follow/${userId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -195,13 +162,13 @@ export async function followUser(userId: string, token?: string): Promise<void> 
   }
 }
 
-export async function unfollowUser(userId: string, token?: string): Promise<void> {
-  const response = await fetch(`${getApiBaseUrl()}/api/follow/${userId}`, {
+export async function unfollowUser(userId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/follow/${userId}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -213,11 +180,12 @@ export async function unfollowUser(userId: string, token?: string): Promise<void
 }
 
 export async function getFollowers(userId: string): Promise<BasicFollowUser[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/users/${userId}/followers`, {
+  const response = await fetch(`${API_URL}/api/users/${userId}/followers`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -231,11 +199,12 @@ export async function getFollowers(userId: string): Promise<BasicFollowUser[]> {
 }
 
 export async function getFollowing(userId: string): Promise<BasicFollowUser[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/users/${userId}/following`, {
+  const response = await fetch(`${API_URL}/api/users/${userId}/following`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -248,13 +217,13 @@ export async function getFollowing(userId: string): Promise<BasicFollowUser[]> {
   return (body as ApiSuccess<{ following: BasicFollowUser[] }>).data.following;
 }
 
-export async function getMyFollowing(token?: string): Promise<BasicFollowUser[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/users/following`, {
+export async function getMyFollowing(): Promise<BasicFollowUser[]> {
+  const response = await fetch(`${API_URL}/api/users/following`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -267,13 +236,13 @@ export async function getMyFollowing(token?: string): Promise<BasicFollowUser[]>
   return (body as ApiSuccess<{ following: BasicFollowUser[] }>).data.following;
 }
 
-export async function getAllUsers(token?: string): Promise<DiscoverUser[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/users`, {
+export async function getAllUsers(): Promise<DiscoverUser[]> {
+  const response = await fetch(`${API_URL}/api/users`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeader(token),
     },
+    credentials: "include",
     cache: "no-store",
   });
 

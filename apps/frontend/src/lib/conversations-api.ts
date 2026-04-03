@@ -38,8 +38,8 @@ type StartConversationResponse = {
   };
 };
 
-export async function getConversations(token: string): Promise<ConversationListItem[]> {
-  const response = await apiGet<GetConversationsResponse>("/api/conversations", token);
+export async function getConversations(): Promise<ConversationListItem[]> {
+  const response = await apiGet<GetConversationsResponse>("/api/conversations");
 
   if (!response.success || !response.data || !Array.isArray(response.data.conversations)) {
     throw new Error("Invalid conversations response");
@@ -48,11 +48,10 @@ export async function getConversations(token: string): Promise<ConversationListI
   return response.data.conversations;
 }
 
-export async function startConversation(token: string, userId: string): Promise<string> {
+export async function startConversation(userId: string): Promise<string> {
   const response = await apiPost<StartConversationResponse>(
     "/api/conversations",
     { targetUserId: userId },
-    token,
   );
 
   if (!response.success || !response.data?.conversation?.id) {

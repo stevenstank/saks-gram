@@ -16,7 +16,7 @@ type EditableProfile = {
 };
 
 export default function EditProfilePage() {
-  const { token, isBootstrapping } = useAuth();
+  const { isBootstrapping } = useAuth();
   const { showErrorToast, showSuccessToast } = useToast();
   const [profile, setProfile] = useState<EditableProfile | null>(null);
   const [bio, setBio] = useState("");
@@ -32,16 +32,10 @@ export default function EditProfilePage() {
       return;
     }
 
-    if (!token) {
-      setError("You must be logged in to edit your profile");
-      setIsLoadingProfile(false);
-      return;
-    }
-
     setIsLoadingProfile(true);
     setError(null);
 
-    getCurrentUser(token)
+    getCurrentUser()
       .then((user) => {
         setProfile(user);
         setBio(user.bio ?? "");
@@ -55,7 +49,7 @@ export default function EditProfilePage() {
       .finally(() => {
         setIsLoadingProfile(false);
       });
-  }, [isBootstrapping, showErrorToast, token]);
+  }, [isBootstrapping, showErrorToast]);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -81,13 +75,6 @@ export default function EditProfilePage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!token) {
-      const message = "You must be logged in to edit your profile";
-      setError(message);
-      showErrorToast(message);
-      return;
-    }
-
     setIsSaving(true);
     setError(null);
     setSuccess(null);
@@ -96,7 +83,7 @@ export default function EditProfilePage() {
       let nextAvatar = profile?.avatar ?? null;
 
       if (selectedFile) {
-        nextAvatar = await uploadAvatar(selectedFile, token);
+        nextAvatar = await uploadAvatar(selectedFile);
       }
 
       const updated = await updateProfile(
@@ -104,7 +91,6 @@ export default function EditProfilePage() {
           bio: bio.trim() === "" ? null : bio.trim(),
           avatar: nextAvatar,
         },
-        token,
       );
 
       setProfile(updated);

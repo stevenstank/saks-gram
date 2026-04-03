@@ -24,7 +24,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 export default function ConversationPage({ params }: ConversationPageProps) {
   const resolvedParams = use(params);
   const { isCheckingAuth } = useRequireAuth();
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const { showErrorToast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -49,10 +49,6 @@ export default function ConversationPage({ params }: ConversationPageProps) {
   const scrollStorageKey = `saksgram.chat.scroll.${conversationId}`;
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
     if (!conversationId) {
       setError("Missing conversation id");
       setMessages([]);
@@ -70,7 +66,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
     setIsLoading(true);
     setError(null);
 
-    Promise.all([getConversations(token), getConversationMessages(token, conversationId, 1, 100)])
+    Promise.all([getConversations(), getConversationMessages(conversationId, 1, 100)])
       .then(([conversations, messagesResponse]) => {
         const conversation = conversations.find((item) => item.id === conversationId);
         const participant = conversation?.participants[0];
@@ -89,7 +85,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [conversationId, reloadTick, showErrorToast, token]);
+  }, [conversationId, reloadTick, showErrorToast]);
 
   useEffect(() => {
     if (!conversationId || typeof window === "undefined") {
@@ -180,7 +176,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
   );
 
   async function handleSendMessage(): Promise<void> {
-    if (!token || !user || isSending) {
+    if (!user || isSending) {
       return;
     }
 
@@ -222,7 +218,7 @@ export default function ConversationPage({ params }: ConversationPageProps) {
     setIsSending(true);
 
     try {
-      const sent = await sendTextMessage(token, currentConversationId, content);
+      const sent = await sendTextMessage(currentConversationId, content);
 
       setMessages((current) =>
         current.map((message) =>

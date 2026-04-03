@@ -9,6 +9,7 @@ import { Card } from "../../src/components/ui/card";
 import { InputField } from "../../src/components/ui/input-field";
 import { SharePostModal } from "../../src/components/share-post-modal";
 import { useToast } from "../../src/hooks/use-toast";
+import API_URL from "../../src/lib/api-config";
 
 type FeedPost = {
   id: string;
@@ -93,13 +94,10 @@ export function PostCard({ post }: PostCardProps) {
       setIsCommentsLoading(true);
 
       try {
-        const token = getTokenFromStorage();
-
-        const response = await fetch(`${getApiBaseUrl()}/api/posts/${encodeURIComponent(post.id)}/comments`, {
+        const response = await fetch(`${API_URL}/api/posts/${encodeURIComponent(post.id)}/comments`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           credentials: "include",
         });
@@ -148,24 +146,6 @@ export function PostCard({ post }: PostCardProps) {
     };
   }, [post.id, showErrorToast]);
 
-  function getApiBaseUrl(): string {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-    if (!baseUrl || baseUrl.trim() === "") {
-      throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
-    }
-
-    return baseUrl.replace(/\/$/, "");
-  }
-
-  function getTokenFromStorage(): string | null {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    return localStorage.getItem("saksgram.auth.token");
-  }
-
   async function handleLike(): Promise<void> {
     if (!post.id || isTogglingLike) {
       return;
@@ -183,13 +163,10 @@ export function PostCard({ post }: PostCardProps) {
       setLikesCount((prev) => Math.max(0, prev - 1));
 
       try {
-        const token = getTokenFromStorage();
-
-        const response = await fetch(`${getApiBaseUrl()}/api/posts/${encodeURIComponent(post.id)}/like`, {
+        const response = await fetch(`${API_URL}/api/posts/${encodeURIComponent(post.id)}/like`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           credentials: "include",
         });
@@ -213,13 +190,10 @@ export function PostCard({ post }: PostCardProps) {
     setLikesCount((prev) => prev + 1);
 
     try {
-      const token = getTokenFromStorage();
-
-      const response = await fetch(`${getApiBaseUrl()}/api/posts/${encodeURIComponent(post.id)}/like`, {
+      const response = await fetch(`${API_URL}/api/posts/${encodeURIComponent(post.id)}/like`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
       });
@@ -244,7 +218,6 @@ export function PostCard({ post }: PostCardProps) {
       return;
     }
 
-    const token = getTokenFromStorage();
     const rawUser = typeof window !== "undefined" ? localStorage.getItem("saksgram.auth.user") : null;
 
     let optimisticUser = { username: "You", avatar: null as string | null };
@@ -276,11 +249,10 @@ export function PostCard({ post }: PostCardProps) {
     setError(null);
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/posts/${encodeURIComponent(post.id)}/comments`, {
+      const response = await fetch(`${API_URL}/api/posts/${encodeURIComponent(post.id)}/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
         body: JSON.stringify({ content }),

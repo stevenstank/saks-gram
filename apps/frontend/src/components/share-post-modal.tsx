@@ -17,7 +17,7 @@ type SharePostModalProps = {
 };
 
 export function SharePostModal({ isOpen, postId, onClose }: SharePostModalProps) {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const { showErrorToast, showSuccessToast } = useToast();
 
   const [users, setUsers] = useState<DiscoverUser[]>([]);
@@ -26,13 +26,13 @@ export function SharePostModal({ isOpen, postId, onClose }: SharePostModalProps)
   const [sendingToId, setSendingToId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen || !token) {
+    if (!isOpen) {
       return;
     }
 
     setIsLoading(true);
 
-    getAllUsers(token)
+    getAllUsers()
       .then((userItems) => {
         setUsers(userItems.filter((item) => item.id !== user?.id));
       })
@@ -43,7 +43,7 @@ export function SharePostModal({ isOpen, postId, onClose }: SharePostModalProps)
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isOpen, showErrorToast, token, user?.id]);
+  }, [isOpen, showErrorToast, user?.id]);
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -56,16 +56,11 @@ export function SharePostModal({ isOpen, postId, onClose }: SharePostModalProps)
   }, [search, users]);
 
   async function sendToUser(targetUser: DiscoverUser): Promise<void> {
-    if (!token) {
-      showErrorToast("Missing authentication token");
-      return;
-    }
-
     setSendingToId(targetUser.id);
 
     try {
-      const conversationId = await startConversation(token, targetUser.id);
-      await sendPostMessage(token, conversationId, postId);
+      const conversationId = await startConversation(targetUser.id);
+      await sendPostMessage(conversationId, postId);
       showSuccessToast(`Shared with @${targetUser.username}`);
       onClose();
     } catch (error) {

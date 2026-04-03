@@ -8,7 +8,6 @@ import { Avatar } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
-import { useAuth } from "../../hooks/use-auth";
 import { useRequireAuth } from "../../hooks/use-require-auth";
 import { useToast } from "../../hooks/use-toast";
 import { getConversations, startConversation, type ConversationListItem } from "../../lib/conversations-api";
@@ -49,7 +48,6 @@ function getLastMessagePreview(item: ConversationListItem): string {
 export default function MessagesPage() {
   const router = useRouter();
   const { isCheckingAuth } = useRequireAuth();
-  const { token } = useAuth();
   const { showErrorToast } = useToast();
 
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
@@ -59,14 +57,10 @@ export default function MessagesPage() {
   const [startingUserId, setStartingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
-    Promise.all([getConversations(token), getMyFollowing(token)])
+    Promise.all([getConversations(), getMyFollowing()])
       .then(([conversationItems, followingItems]) => {
         setConversations(conversationItems);
         setFollowedUsers(followingItems);
@@ -79,7 +73,7 @@ export default function MessagesPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [showErrorToast, token]);
+  }, [showErrorToast]);
 
   const items = useMemo(
     () =>
@@ -107,14 +101,10 @@ export default function MessagesPage() {
   );
 
   async function handleStartConversation(targetUserId: string): Promise<void> {
-    if (!token) {
-      return;
-    }
-
     setStartingUserId(targetUserId);
 
     try {
-      const conversationId = await startConversation(token, targetUserId);
+      const conversationId = await startConversation(targetUserId);
       router.push(`/messages/${encodeURIComponent(conversationId)}`);
     } catch (startError) {
       const message = startError instanceof Error ? startError.message : "Failed to start conversation";

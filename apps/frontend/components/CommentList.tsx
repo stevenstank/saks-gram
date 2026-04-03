@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import API_URL from "../src/lib/api-config";
 import { CommentItem, type Comment } from "./CommentItem";
 
 type CommentListProps = {
@@ -29,16 +30,6 @@ function isGetCommentsResponse(value: unknown): value is GetCommentsResponse {
   return typeof data === "object" && data !== null && "comments" in data;
 }
 
-function getApiBaseUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!baseUrl || baseUrl.trim() === "") {
-    throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
-  }
-
-  return baseUrl.replace(/\/$/, "");
-}
-
 export function CommentList({ postId, refreshKey = 0 }: CommentListProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +43,7 @@ export function CommentList({ postId, refreshKey = 0 }: CommentListProps) {
       setError(null);
 
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/comments/${encodeURIComponent(postId)}`, {
+        const response = await fetch(`${API_URL}/api/comments/${encodeURIComponent(postId)}`, {
           method: "GET",
           credentials: "include",
           headers: {

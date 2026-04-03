@@ -24,7 +24,7 @@ type ProfileUser = {
 
 export default function MyProfilePage() {
   const { isCheckingAuth } = useRequireAuth();
-  const { token, isBootstrapping } = useAuth();
+  const { isBootstrapping } = useAuth();
   const { showErrorToast } = useToast();
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -38,16 +38,10 @@ export default function MyProfilePage() {
       return;
     }
 
-    if (!token) {
-      setError("You must be logged in to view this page");
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
-    getCurrentUser(token)
+    getCurrentUser()
       .then(async (data) => {
         setUser(data);
 
@@ -69,7 +63,7 @@ export default function MyProfilePage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [isBootstrapping, showErrorToast, token]);
+  }, [isBootstrapping, showErrorToast]);
 
   if (isCheckingAuth) {
     return (

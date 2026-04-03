@@ -2,12 +2,11 @@
 
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { getMe, loginRequest, registerRequest } from "../lib/api";
+import { getMe, loginRequest, logoutRequest, registerRequest } from "../lib/api";
 import type { AuthUser, LoginInput, RegisterInput } from "../types/auth";
 
 export type AuthContextValue = {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   login: (input: LoginInput) => Promise<void>;
@@ -15,7 +14,6 @@ export type AuthContextValue = {
   logout: () => void;
 };
 
-const AUTH_TOKEN_KEY = "saksgram.auth.token";
 const AUTH_USER_KEY = "saksgram.auth.user";
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -25,28 +23,23 @@ type AuthProviderProps = {
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
-  const persistSession = useCallback((nextToken: string, nextUser: AuthUser) => {
-    setToken(nextToken);
+  const persistSession = useCallback((nextUser: AuthUser) => {
     setUser(nextUser);
-    localStorage.setItem(AUTH_TOKEN_KEY, nextToken);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
   }, []);
 
   const clearSession = useCallback(() => {
-    setToken(null);
     setUser(null);
-    localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
   }, []);
 
   const login = useCallback(
     async (input: LoginInput) => {
       const response = await loginRequest(input);
-      persistSession(response.data.token, response.data.user);
+      persistSession(response.data.user);
     },
     [persistSession],
   );
@@ -54,20 +47,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signup = useCallback(
     async (input: RegisterInput) => {
       const response = await registerRequest(input);
-      persistSession(response.data.token, response.data.user);
+      persistSession(response.data.user);
     },
     [persistSession],
   );
 
   const logout = useCallback(() => {
+    void logoutRequest().catch(() => {
+      // Ignore logout network failures; local session is still cleared.
+    });
     clearSession();
   }, [clearSession]);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
     const storedUser = localStorage.getItem(AUTH_USER_KEY);
 
-    if (!storedToken || !storedUser) {
+    if (!storedUser) {
       setIsBootstrapping(false);
       return;
     }
@@ -82,10 +77,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
-    setToken(storedToken);
     setUser(parsedUser);
 
-    getMe(storedToken)
+    getMe()
       .then((response) => {
         setUser(response.data.user);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.data.user));
@@ -101,14 +95,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      token,
-      isAuthenticated: Boolean(token && user),
+      isAuthenticated: Boolean(user),
       isBootstrapping,
       login,
       signup,
       logout,
     }),
-    [isBootstrapping, login, logout, signup, token, user],
+    [isBootstrapping, login, logout, signup, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

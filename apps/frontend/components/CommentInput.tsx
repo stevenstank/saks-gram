@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import API_URL from "../src/lib/api-config";
 import { Button } from "../src/components/ui/button";
 import { InputField } from "../src/components/ui/input-field";
 
@@ -18,24 +19,6 @@ type CreateCommentResponse = {
     };
   };
 };
-
-function getApiBaseUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!baseUrl || baseUrl.trim() === "") {
-    throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
-  }
-
-  return baseUrl.replace(/\/$/, "");
-}
-
-function getTokenFromStorage(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("saksgram.auth.token");
-}
 
 export function CommentInput({ postId, onCreated }: CommentInputProps) {
   const [content, setContent] = useState("");
@@ -61,13 +44,10 @@ export function CommentInput({ postId, onCreated }: CommentInputProps) {
     setError(null);
 
     try {
-      const token = getTokenFromStorage();
-
-      const response = await fetch(`${getApiBaseUrl()}/api/comments`, {
+      const response = await fetch(`${API_URL}/api/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
         body: JSON.stringify({
