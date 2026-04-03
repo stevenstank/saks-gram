@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { FollowButton } from "../../../components/follow-button";
+import { PostCard } from "../../../components/post-card";
+import { useAuth } from "../../../hooks/use-auth";
 import { getFollowers, getFollowing, getProfile } from "../../../lib/profile-api";
+import { createPost, getPostsByUser } from "../../../services/post";
+import type { Post } from "../../../types/post";
 
 type ProfileUser = {
   id: string;
@@ -19,9 +23,27 @@ type ProfileUser = {
 export default function PublicProfilePage() {
   const params = useParams<{ id: string }>();
   const username = useMemo(() => params?.id ?? "", [params]);
+  const { user: authUser, isAuthenticated, isBootstrapping } = useAuth();
+
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isPostsLoading, setIsPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [postContent, setPostContent] = useState("");
+  const [createPostError, setCreatePostError] = useState<string | null>(null);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+
+  const canCreatePost = useMemo(() => {
+    if (isBootstrapping || !isAuthenticated || !authUser || !user) {
+      return false;
+    }
+
+    return authUser.username === user.username;
+  }, [authUser, isAuthenticated, isBootstrapping, user]);
+
+  const remainingChars = 500 - postContent.length;
 
   const { data: followers = [] } = useSWR(username ? `followers:${username}` : null, () => getFollowers(username));
   const { data: following = [] } = useSWR(username ? `following:${username}` : null, () => getFollowing(username));
@@ -48,6 +70,60 @@ export default function PublicProfilePage() {
         setIsLoading(false);
       });
   }, [username]);
+
+  useEffect(() => {
+    if (!username) {
+      setPosts([]);
+      setPostsError("Invalid profile username");
+      setIsPostsLoading(false);
+      return;
+    }
+
+    setIsPostsLoading(true);
+    setPostsError(null);
+
+    getPostsByUser(username)
+      .then((data) => {
+        setPosts(data);
+      })
+      .catch((fetchError) => {
+        const message = fetchError instanceof Error ? fetchError.message : "Failed to load posts";
+        setPostsError(message);
+      })
+      .finally(() => {
+        setIsPostsLoading(false);
+      });
+  }, [username]);
+
+  async function onCreatePost(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmed = postContent.trim();
+
+    if (!trimmed) {
+      setCreatePostError("Content is required");
+      return;
+    }
+
+    if (trimmed.length > 500) {
+      setCreatePostError("Content must be at most 500 characters");
+      return;
+    }
+
+    setIsCreatingPost(true);
+    setCreatePostError(null);
+
+    try {
+      const createdPost = await createPost(trimmed);
+      setPosts((current) => [createdPost, ...current]);
+      setPostContent("");
+    } catch (submitError) {
+      const message = submitError instanceof Error ? submitError.message : "Failed to create post";
+      setCreatePostError(message);
+    } finally {
+      setIsCreatingPost(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -105,6 +181,57 @@ export default function PublicProfilePage() {
         <div className="mt-6 rounded-xl bg-slate-50 p-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Bio</h2>
           <p className="mt-2 text-sm text-slate-700">{user.bio || "No bio added yet."}</p>
+        </div>
+
+        {canCreatePost ? (
+          <form className="mt-6" onSubmit={onCreatePost}>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Create Post</h2>
+
+            <textarea
+              className="mt-2 w-full rounded border border-slate-300 p-2 text-sm"
+              rows={4}
+              maxLength={500}
+              value={postContent}
+              onChange={(event) => {
+                setPostContent(event.target.value);
+                if (createPostError) {
+                  setCreatePostError(null);
+                }
+              }}
+              placeholder="Write a post..."
+              disabled={isCreatingPost}
+            />
+
+            <p className="mt-1 text-xs text-slate-500">{remainingChars} characters left</p>
+
+            <button
+              type="submit"
+              className="mt-2 rounded border border-slate-300 px-3 py-1 text-sm"
+              disabled={isCreatingPost}
+            >
+              {isCreatingPost ? "Posting..." : "Post"}
+            </button>
+
+            {createPostError ? <p className="mt-2 text-sm text-rose-700">{createPostError}</p> : null}
+          </form>
+        ) : null}
+
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Posts</h2>
+
+          {isPostsLoading ? <p className="mt-2 text-sm text-slate-700">Loading posts...</p> : null}
+
+          {postsError ? <p className="mt-2 text-sm text-rose-700">{postsError}</p> : null}
+
+          {!isPostsLoading && !postsError && posts.length === 0 ? (
+            <p className="mt-2 text-sm text-slate-700">No posts yet.</p>
+          ) : null}
+
+          <div className="mt-3 space-y-3">
+            {posts.map((post) => (
+              <PostCard key={post.id} content={post.content} author={post.author} createdAt={post.createdAt} />
+            ))}
+          </div>
         </div>
       </section>
     </main>
