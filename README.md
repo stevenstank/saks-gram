@@ -110,9 +110,7 @@ pnpm dev:frontend
 - Trigger production build from main branch
 - Production URL: https://saks-gram-frontend.vercel.app/
 
-## Screenshots
-
-_Add UI screenshots here_
+## Details
 
 - Auth pages
 - Feed page
